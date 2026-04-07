@@ -1,0 +1,158 @@
+﻿python.exe : INFO:     Will
+ watch for changes in these
+ directories: ['C:\\Users\\
+kjw05\\Desktop\\kit 공모전 - 복
+사본\\backend']
+위치 줄:1 문자:68
++ ... 본\backend'; & '.\venv
+\Scripts\python.exe' -m uvi
+corn main:app --reloa ...
++                 ~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (INF  
+  O:     Will ... 복사본\\b   
+ ackend']:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+INFO:     Uvicorn running o
+n http://127.0.0.1:8000 (Pr
+ess CTRL+C to quit)
+INFO:     Started reloader 
+process [26568] using Watch
+Files
+Process SpawnProcess-1:
+Traceback (most recent call
+ last):
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\multiprocessin
+g\process.py", line 313, in
+ _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\multiprocessin
+g\process.py", line 108, in
+ run
+    self._target(*self._arg
+s, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\v
+env\Lib\site-packages\uvico
+rn\_subprocess.py", line 76
+, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\v
+env\Lib\site-packages\uvico
+rn\server.py", line 61, in 
+run
+    return asyncio.run(self
+.serve(sockets=sockets))
+           ~~~~~~~~~~~^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\asyncio\runner
+s.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\asyncio\runner
+s.py", line 118, in run
+    return self._loop.run_u
+ntil_complete(task)
+           ~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\asyncio\base_e
+vents.py", line 725, in run
+_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\v
+env\Lib\site-packages\uvico
+rn\server.py", line 68, in 
+serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\v
+env\Lib\site-packages\uvico
+rn\config.py", line 467, in
+ load
+    self.loaded_app = impor
+t_from_string(self.app)
+                      ~~~~~
+~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\v
+env\Lib\site-packages\uvico
+rn\importer.py", line 21, i
+n import_from_string
+    module = importlib.impo
+rt_module(module_str)
+  File "C:\Users\kjw05\AppD
+ata\Local\Programs\Python\P
+ython313\Lib\importlib\__in
+it__.py", line 88, in impor
+t_module
+    return _bootstrap._gcd_
+import(name[level:], packag
+e, level)
+           ~~~~~~~~~~~~~~~~
+~~~~~~^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File "<frozen importlib._
+bootstrap>", line 1387, in 
+_gcd_import
+  File "<frozen importlib._
+bootstrap>", line 1360, in 
+_find_and_load
+  File "<frozen importlib._
+bootstrap>", line 1331, in 
+_find_and_load_unlocked
+  File "<frozen importlib._
+bootstrap>", line 935, in _
+load_unlocked
+  File "<frozen importlib._
+bootstrap_external>", line 
+1026, in exec_module
+  File "<frozen importlib._
+bootstrap>", line 488, in _
+call_with_frames_removed
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\m
+ain.py", line 39, in <modul
+e>
+    from quiz_router import
+ router as quiz_router_api
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\q
+uiz_router.py", line 3, in 
+<module>
+    from quiz_generator imp
+ort trigger_quiz_generation
+  File "C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\q
+uiz_generator.py", line 3, 
+in <module>
+    from ai_engine import a
+i_engine
+ImportError: cannot import 
+name 'ai_engine' from 'ai_e
+ngine' (C:\Users\kjw05\Desk
+top\kit 공모전 - 복사본\backend\a
+i_engine.py)
+Supabase Client Initialization Error (API Keys may be missing): Invalid URL
