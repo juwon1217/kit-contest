@@ -1,0 +1,292 @@
+# 구현 계획: Edu-Lens AI 플랫폼
+
+## 개요
+
+Edu-Lens AI 플랫폼의 구현 계획이다. Backend(FastAPI/Python)와 Frontend(Next.js/TypeScript)를 점진적으로 구축하며, 각 단계에서 핵심 기능을 검증한다. 데이터베이스 스키마 → 백엔드 핵심 모듈 → 프론트엔드 인증/라우팅 → 학생 뷰 → 강사 뷰 → 퀴즈/리포트 순서로 진행한다.
+
+## Tasks
+
+- [ ] 1. 프로젝트 초기 설정 및 데이터베이스 스키마 구성
+  - [ ] 1.1 프로젝트 디렉토리 구조 생성 및 의존성 설치
+    - Backend: FastAPI 프로젝트 초기화 (Python 3.11+, `requirements.txt` 또는 `pyproject.toml`)
+    - Frontend: Next.js 14+ App Router 프로젝트 초기화
+    - 주요 패키지: `react-pdf-viewer`, `react-resizable-panels`, `swr`, `fast-check`, `vitest`, `@testing-library/react`
+    - Backend 패키지: `fastapi`, `uvicorn`, `supabase`, `langchain`, `langchain-google-genai`, `hypothesis`, `pytest`
+    - _Requirements: 전체_
+  - [ ] 1.2 Supabase 데이터베이스 스키마 마이그레이션 파일 작성
+    - 설계 문서의 DDL을 기반으로 `users`, `classes`, `class_students`, `interactions`, `chat_sessions`, `chat_messages`, `quizzes`, `quiz_questions`, `quiz_submissions` 테이블 생성
+    - 인덱스 생성: `idx_interactions_class_page`, `idx_interactions_student`
+    - _Requirements: 2.1, 5.3, 6.3, 7.1, 11.1, 12.1_
+  - [ ] 1.3 Backend 공통 설정 및 에러 처리 모듈 구현
+    - Supabase 클라이언트 초기화 (`config.py`)
+    - 공통 에러 응답 모델 (`ErrorResponse`) 및 `ERROR_MAP` 정의
+    - FastAPI 예외 핸들러 등록
+    - _Requirements: 2.4, 2.5, 3.3_
+
+- [ ] 2. 인증 모듈 및 수업 관리 모듈 구현
+  - [ ] 2.1 Auth_Module 구현 (Backend)
+    - `auth_module.py`: `handle_oauth_callback`, `get_current_user`, `set_role` 메서드 구현
+    - Supabase Auth를 활용한 Google OAuth 2.0 콜백 처리
+    - JWT 토큰 검증 미들웨어 구현
+    - Auth API 라우터: `POST /api/auth/callback`, `GET /api/auth/me`, `PUT /api/auth/role`
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [ ] 2.2 Class_Manager 구현 (Backend)
+    - `class_manager.py`: `generate_class_id`, `create_class`, `join_class`, `end_class` 메서드 구현
+    - 6자리 영숫자 Class_ID 생성 로직 (중복 시 최대 5회 재생성)
+    - PDF 파일 Supabase Storage 업로드 연동
+    - Class API 라우터: `POST /api/classes`, `GET /api/classes/{class_id}`, `POST /api/classes/{class_id}/join`, `PUT /api/classes/{class_id}/end`
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ]* 2.3 Property 테스트: Class_ID 생성 형식 불변식 (Property 1)
+    - **Property 1: Class_ID 생성 형식 불변식**
+    - Hypothesis를 사용하여 `generate_class_id()` 반복 호출 시 항상 6자리 영숫자인지 검증
+    - **Validates: Requirements 2.1**
+  - [ ]* 2.4 Property 테스트: Class_ID 고유성 (Property 2)
+    - **Property 2: Class_ID 고유성**
+    - Hypothesis를 사용하여 N회 생성 시 모든 ID가 중복 없는지 검증
+    - **Validates: Requirements 2.1**
+  - [ ]* 2.5 Property 테스트: 유효한 Class_ID 수업 참여 (Property 3)
+    - **Property 3: 유효한 Class_ID 수업 참여**
+    - 활성 수업의 유효한 Class_ID로 참여 시 class_students 레코드 생성 검증
+    - **Validates: Requirements 2.3**
+  - [ ]* 2.6 Property 테스트: 잘못된 Class_ID 에러 처리 (Property 4)
+    - **Property 4: 잘못된 Class_ID 에러 처리**
+    - 존재하지 않는 Class_ID로 참여 시 에러 반환 및 레코드 미생성 검증
+    - **Validates: Requirements 2.4**
+  - [ ]* 2.7 Unit 테스트: Auth_Module 및 Class_Manager
+    - Auth_Module: OAuth 콜백 처리, 역할 설정 테스트
+    - Class_Manager: 수업 생성, 참여, 종료 테스트
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [ ] 3. 체크포인트 - 인증 및 수업 관리 검증
+  - 모든 테스트가 통과하는지 확인하고, 질문이 있으면 사용자에게 문의한다.
+
+- [ ] 4. AI Engine 및 인터랙션 기록 모듈 구현
+  - [ ] 4.1 AI_Engine 구현 (Backend)
+    - `ai_engine.py`: Gemini 1.5 Pro Chat/Vision 모델 초기화
+    - `explain_text`: 텍스트 기반 해설 생성 (LangChain 프롬프트 템플릿)
+    - `explain_image`: Vision API를 사용한 이미지 기반 해설 생성
+    - `chat`: LangChain ConversationBufferMemory를 활용한 멀티턴 대화
+    - AI API 라우터: `POST /api/ai/explain`, `POST /api/ai/explain-image`, `POST /api/ai/chat`
+    - 에러 처리: 최대 3회 재시도 (exponential backoff), Rate Limit 처리
+    - _Requirements: 5.2, 6.2, 7.2_
+  - [ ] 4.2 Interaction_Recorder 구현 (Backend)
+    - `interaction_recorder.py`: `record`, `get_page_heatmap`, `get_hot_pages` 메서드 구현
+    - 인터랙션 기록 + total_questions 카운트 업을 단일 트랜잭션으로 처리
+    - Interaction API 라우터 통합 (AI API 내에서 호출)
+    - _Requirements: 5.3, 5.4, 6.3, 8.2_
+  - [ ] 4.3 Chat_Manager 구현 (Backend)
+    - `chat_manager.py`: 채팅 세션 생성, 메시지 이력 관리, 컨텍스트 전달 로직
+    - 새로운 컨텍스트 시작 시 새 세션 생성 + 이전 세션 보존
+    - 컨텍스트 길이 초과 시 오래된 메시지 제거 로직
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [ ]* 4.4 Property 테스트: 인터랙션 기록 완전성 (Property 5)
+    - **Property 5: 인터랙션 기록 완전성**
+    - Hypothesis `st.builds(InteractionCreate, ...)`로 유효한 인터랙션 생성 후 필수 필드 포함 검증
+    - **Validates: Requirements 5.3, 6.3**
+  - [ ]* 4.5 Property 테스트: 인터랙션 카운트 불변식 (Property 6)
+    - **Property 6: 인터랙션 카운트 불변식**
+    - 기록 전후 total_questions 값이 정확히 1 증가하는지 검증
+    - **Validates: Requirements 5.4**
+  - [ ]* 4.6 Property 테스트: 대화 컨텍스트 유지 (Property 8)
+    - **Property 8: 대화 컨텍스트 유지**
+    - `st.lists(st.builds(ChatMessage, ...))`로 N개 메시지 생성 후 컨텍스트 순서 보존 검증
+    - **Validates: Requirements 7.1**
+  - [ ]* 4.7 Property 테스트: 세션 초기화 및 이력 보존 (Property 9)
+    - **Property 9: 세션 초기화 및 이력 보존**
+    - 새 컨텍스트 시작 시 새 세션 생성 + 이전 세션 메시지 불변 검증
+    - **Validates: Requirements 7.3**
+  - [ ]* 4.8 Unit 테스트: AI_Engine, Interaction_Recorder, Chat_Manager
+    - AI_Engine: Mock Gemini API로 해설/채팅 흐름 테스트
+    - Interaction_Recorder: 기록 및 히트맵 조회 테스트
+    - Chat_Manager: 세션 생성, 메시지 이력 관리 테스트
+    - _Requirements: 5.2, 5.3, 5.4, 6.2, 6.3, 7.1, 7.2, 7.3_
+
+- [ ] 5. 체크포인트 - AI Engine 및 인터랙션 검증
+  - 모든 테스트가 통과하는지 확인하고, 질문이 있으면 사용자에게 문의한다.
+
+- [ ] 6. Frontend 인증 및 역할 기반 라우팅 구현
+  - [ ] 6.1 로그인 페이지 및 Google OAuth 연동
+    - `app/(auth)/login/page.tsx`: Google 로그인 버튼, Supabase Auth 연동
+    - OAuth 인증 실패 시 "인증에 실패했습니다. 다시 시도해주세요." 에러 메시지 표시
+    - _Requirements: 1.1, 1.3_
+  - [ ] 6.2 역할 선택 페이지 구현
+    - `app/(auth)/role-select/page.tsx`: "강사" / "학생" 역할 선택 UI
+    - 선택된 역할을 `PUT /api/auth/role`로 저장 후 해당 대시보드로 이동
+    - _Requirements: 1.2, 1.4_
+  - [ ] 6.3 인증 가드 및 Dashboard_Router 구현
+    - 미인증 사용자의 대시보드 URL 직접 접근 시 로그인 페이지로 리다이렉트
+    - 역할에 따라 강사/학생 대시보드로 라우팅하는 미들웨어 또는 레이아웃 구현
+    - _Requirements: 3.1, 3.2, 3.3_
+  - [ ] 6.4 수업 생성 페이지 구현 (강사)
+    - `app/(class)/create/page.tsx`: 수업 제목 입력, PDF 파일 업로드, Class_ID 표시
+    - `POST /api/classes` API 호출 연동
+    - _Requirements: 2.1, 2.2_
+  - [ ] 6.5 수업 참여 페이지 구현 (학생)
+    - `app/(class)/join/page.tsx`: Class_ID 입력 필드, 유효성 검증 에러 메시지 표시
+    - `POST /api/classes/{class_id}/join` API 호출 연동
+    - _Requirements: 2.3, 2.4, 2.5_
+  - [ ]* 6.6 Unit 테스트: 인증 및 라우팅 컴포넌트
+    - vitest + React Testing Library로 로그인, 역할 선택, 인증 가드 테스트
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.3_
+
+- [ ] 7. 학생 대시보드 구현 (PDF_Viewer + AI_Sidebar)
+  - [ ] 7.1 PDF_Viewer 컴포넌트 구현
+    - `react-pdf-viewer`를 사용한 PDF 렌더링
+    - 페이지 전환 이벤트 핸들링 (`onPageChange` 콜백)
+    - _Requirements: 4.1, 4.3_
+  - [ ] 7.2 Text_Selector 모듈 구현
+    - PDF 내 텍스트 드래그 선택 감지
+    - 선택된 텍스트를 AI_Sidebar 입력 필드에 자동 전달
+    - _Requirements: 5.1_
+  - [ ] 7.3 Area_Cropper 모듈 구현
+    - PDF 위에 직사각형 영역 지정 UI (캔버스 오버레이)
+    - 지정 영역을 이미지(base64)로 캡처하여 AI_Sidebar에 전달
+    - _Requirements: 6.1_
+  - [ ]* 7.4 Property 테스트: 영역 캡처 유효성 (Property 7)
+    - **Property 7: 영역 캡처 유효성**
+    - fast-check `fc.record({x: fc.nat(), y: fc.nat(), w: fc.nat({min:1}), h: fc.nat({min:1})})`로 유효 좌표 생성 후 비어있지 않은 이미지 반환 검증
+    - **Validates: Requirements 6.1**
+  - [ ] 7.5 AI_Sidebar 컴포넌트 구현
+    - 채팅 메시지 목록 렌더링 (ChatSession 단위 시각적 구분)
+    - 텍스트 입력 필드 + 전송 버튼
+    - 드래그 텍스트/캡처 이미지 컨텍스트 표시
+    - `POST /api/ai/explain`, `POST /api/ai/explain-image`, `POST /api/ai/chat` API 연동
+    - _Requirements: 5.2, 6.2, 7.2, 7.4_
+  - [ ] 7.6 학생 대시보드 레이아웃 조립
+    - `app/(dashboard)/student/[classId]/page.tsx`: 2분할(4:1) 레이아웃
+    - `react-resizable-panels`로 PDF_Viewer와 AI_Sidebar 간 리사이즈 구현
+    - _Requirements: 3.2, 4.1, 4.2_
+  - [ ]* 7.7 Unit 테스트: 학생 대시보드 컴포넌트
+    - PDF_Viewer, AI_Sidebar, Text_Selector 렌더링 및 인터랙션 테스트
+    - _Requirements: 4.1, 5.1, 5.2, 7.4_
+
+- [ ] 8. 강사 대시보드 구현 (Heatmap + Student_Roster + Toast)
+  - [ ] 8.1 Heatmap_Panel 컴포넌트 구현
+    - 페이지별 질문 빈도를 색상 강도로 시각화
+    - 히트맵 정규화 함수 (`normalize_heatmap`): 최대 빈도 기준 0.0~1.0 정규화
+    - SWR로 `GET /api/class/{id}/heatmap` 10초 주기 폴링
+    - 페이지 클릭 시 PDF_Viewer 해당 페이지로 이동
+    - _Requirements: 8.1, 8.2, 8.3_
+  - [ ]* 8.2 Property 테스트: 히트맵 빈도 정규화 (Property 10)
+    - **Property 10: 히트맵 빈도 정규화**
+    - Hypothesis `st.lists(st.integers(min_value=0), min_size=1)`로 빈도 배열 생성 후 intensity 범위 및 최대값 검증
+    - **Validates: Requirements 8.3**
+  - [ ] 8.3 Student_Roster 컴포넌트 구현
+    - 접속 학생 목록: 학번, 이름, 프로필 이미지, 총 질문 횟수 표시
+    - SWR로 `GET /api/class/{id}/roster` 10초 주기 폴링
+    - 새 학생 접속 시 다음 폴링 주기에 자동 추가
+    - _Requirements: 9.1, 9.2, 9.3_
+  - [ ] 8.4 Toast_Notifier 컴포넌트 구현
+    - 페이지 전환 시 "이전 페이지에서 N명이 질문했습니다" 토스트 알림 (3초간 표시)
+    - N=0일 때 "이전 페이지에서 질문이 없었습니다" 메시지
+    - `formatToastMessage` 유틸리티 함수 구현
+    - _Requirements: 10.1, 10.2_
+  - [ ]* 8.5 Property 테스트: 토스트 메시지 포맷팅 (Property 11)
+    - **Property 11: 토스트 메시지 포맷팅**
+    - fast-check `fc.nat()`로 N 생성 후 메시지 형식 검증 (N>0: "N명이 질문", N=0: "질문이 없었습니다")
+    - **Validates: Requirements 10.1, 10.2**
+  - [ ]* 8.6 Property 테스트: 질문 빈도 상위 페이지 정렬 (Property 12)
+    - **Property 12: 질문 빈도 상위 페이지 정렬**
+    - Hypothesis `st.dictionaries(st.integers(min_value=1), st.integers(min_value=0))`로 데이터 생성 후 반환 목록 크기 및 내림차순 정렬 검증
+    - **Validates: Requirements 11.1**
+  - [ ] 8.7 강사 대시보드 레이아웃 조립
+    - `app/(dashboard)/instructor/[classId]/page.tsx`: 3분할(1:4:1) 레이아웃
+    - `react-resizable-panels`로 Heatmap_Panel, PDF_Viewer, Student_Roster 간 리사이즈 구현
+    - Toast_Notifier를 PDF_Viewer 페이지 전환 이벤트에 연결
+    - _Requirements: 3.1, 4.3, 4.4_
+  - [ ]* 8.8 Unit 테스트: 강사 대시보드 컴포넌트
+    - Heatmap_Panel, Student_Roster, Toast_Notifier 렌더링 및 데이터 갱신 테스트
+    - _Requirements: 8.1, 8.3, 9.1, 10.1, 10.2_
+
+- [ ] 9. 체크포인트 - Frontend 대시보드 검증
+  - 모든 테스트가 통과하는지 확인하고, 질문이 있으면 사용자에게 문의한다.
+
+- [ ] 10. 퀴즈 생성 및 풀이 모듈 구현
+  - [ ] 10.1 Quiz_Generator 구현 (Backend)
+    - `quiz_generator.py`: 수업 종료 시 질문 빈도 상위 페이지 식별 → AI_Engine으로 공통 퀴즈 생성
+    - `generate_quiz`, `generate_personal_quiz` 메서드 구현
+    - Quiz API 라우터: `POST /api/quiz/{class_id}/generate`
+    - _Requirements: 11.1, 11.2, 11.3_
+  - [ ] 10.2 Quiz_Engine 구현 (Backend)
+    - `quiz_engine.py`: 공통 + 개인 맞춤 퀴즈 통합 조회, 답안 제출 및 채점
+    - 정답 시 핵심 개념 요약 반환, 오답 시 단계별 해설 반환
+    - Quiz API 라우터: `GET /api/quiz/{class_id}`, `POST /api/quiz/{class_id}/submit`, `GET /api/quiz/{class_id}/explanation/{question_id}`
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ] 10.3 수업 종료 흐름 연동 (Backend)
+    - `PUT /api/classes/{class_id}/end` 호출 시: 수업 상태 "ended" 변경 → Quiz_Generator 트리거 → 공통 퀴즈 생성 → 개인 맞춤 퀴즈 생성
+    - _Requirements: 11.1, 11.2, 11.3, 11.4_
+  - [ ]* 10.4 Property 테스트: 퀴즈 배포 완전성 (Property 13)
+    - **Property 13: 퀴즈 배포 완전성**
+    - 수업에 등록된 모든 학생이 공통 퀴즈를 조회할 수 있는지 검증
+    - **Validates: Requirements 11.3**
+  - [ ]* 10.5 Property 테스트: 퀴즈 채점 정확성 (Property 14)
+    - **Property 14: 퀴즈 채점 정확성**
+    - Hypothesis `st.builds(QuizQuestion, ...) + st.text()`로 문항/답안 생성 후 정답/오답 분기 및 응답 형식 검증
+    - **Validates: Requirements 12.3, 12.4**
+  - [ ]* 10.6 Unit 테스트: Quiz_Generator 및 Quiz_Engine
+    - Mock AI_Engine으로 퀴즈 생성 흐름 테스트
+    - 답안 제출 및 채점 로직 테스트
+    - _Requirements: 11.1, 11.2, 12.1, 12.3, 12.4_
+
+- [ ] 11. 퀴즈 풀이 Frontend 구현
+  - [ ] 11.1 퀴즈 페이지 구현
+    - `app/quiz/[classId]/page.tsx`: 공통 퀴즈 + 개인 맞춤 퀴즈 통합 표시
+    - 문항별 선택지 UI, 답안 제출 버튼
+    - 정답 시 핵심 개념 요약 표시, 오답 시 단계별 해설 표시
+    - `GET /api/quiz/{class_id}`, `POST /api/quiz/{class_id}/submit` API 연동
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ]* 11.2 Unit 테스트: 퀴즈 페이지 컴포넌트
+    - 퀴즈 렌더링, 답안 제출, 정답/오답 피드백 표시 테스트
+    - _Requirements: 12.1, 12.3, 12.4_
+
+- [ ] 12. 체크포인트 - 퀴즈 모듈 검증
+  - 모든 테스트가 통과하는지 확인하고, 질문이 있으면 사용자에게 문의한다.
+
+- [ ] 13. 학습 리포트 모듈 구현
+  - [ ] 13.1 Report_Generator 구현 (Backend)
+    - `report_generator.py`: `generate_student_report`, `generate_instructor_report` 메서드 구현
+    - 학생 리포트: 수업 참여도(질문 횟수, 활동 시간), 퀴즈 성취도(정답률, 오답 문항), 질문 키워드 요약
+    - 강사 리포트: 전체 학생 참여도 통계, 페이지별 질문 분포, 퀴즈 평균 성취도
+    - Report API 라우터: `GET /api/report/{class_id}/student/{student_id}`, `GET /api/report/{class_id}/instructor`
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [ ]* 13.2 Property 테스트: 학생 리포트 완전성 (Property 15)
+    - **Property 15: 학생 리포트 완전성**
+    - Hypothesis `st.lists(st.builds(StudentData, ...))`로 학생 데이터 생성 후 리포트 필수 필드(참여도, 성취도, 키워드 요약) 포함 검증
+    - **Validates: Requirements 13.1**
+  - [ ]* 13.3 Property 테스트: 강사 리포트 통계 정확성 (Property 16)
+    - **Property 16: 강사 리포트 통계 정확성**
+    - 퀴즈 평균 성취도가 개별 학생 성취도의 산술 평균과 일치하는지, 페이지별 질문 분포 합이 전체 질문 수와 일치하는지 검증
+    - **Validates: Requirements 13.3**
+  - [ ] 13.4 리포트 페이지 구현 (Frontend)
+    - `app/report/[classId]/page.tsx`: 시각적 차트(참여도, 성취도)와 텍스트 요약 표시
+    - 학생/강사 역할에 따라 개인 리포트 또는 수업 종합 리포트 렌더링
+    - `GET /api/report/{class_id}/student/{student_id}`, `GET /api/report/{class_id}/instructor` API 연동
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [ ]* 13.5 Unit 테스트: Report_Generator 및 리포트 페이지
+    - 리포트 생성 로직 및 차트 렌더링 테스트
+    - _Requirements: 13.1, 13.2, 13.3_
+
+- [ ] 14. 전체 통합 및 연결
+  - [ ] 14.1 수업 종료 → 퀴즈 → 리포트 전체 흐름 연결
+    - 강사 수업 종료 버튼 → `PUT /api/classes/{class_id}/end` → 퀴즈 자동 생성 → 학생 퀴즈 페이지 이동 → 퀴즈 완료 후 리포트 페이지 이동
+    - 학생 대시보드에서 수업 종료 감지 시 퀴즈 페이지로 자동 전환
+    - _Requirements: 11.1, 11.3, 11.4, 12.1, 13.1_
+  - [ ] 14.2 SWR 폴링 서비스 통합 검증
+    - 강사 대시보드의 Heatmap_Panel, Student_Roster가 10초 주기로 정상 갱신되는지 확인
+    - 학생 접속/질문 이벤트가 강사 대시보드에 반영되는지 확인
+    - _Requirements: 8.2, 9.2, 9.3_
+  - [ ]* 14.3 Integration 테스트: 전체 API 흐름
+    - pytest로 수업 생성 → 참여 → 인터랙션 기록 → 히트맵 조회 → 수업 종료 → 퀴즈 생성 → 퀴즈 풀이 → 리포트 생성 전체 흐름 테스트
+    - _Requirements: 2.1, 2.3, 5.3, 8.2, 11.1, 12.1, 13.1_
+
+- [ ] 15. 최종 체크포인트 - 전체 시스템 검증
+  - 모든 테스트가 통과하는지 확인하고, 질문이 있으면 사용자에게 문의한다.
+
+## Notes
+
+- `*` 표시된 태스크는 선택 사항이며, 빠른 MVP를 위해 건너뛸 수 있다.
+- 각 태스크는 추적 가능성을 위해 특정 요구사항을 참조한다.
+- 체크포인트는 점진적 검증을 보장한다.
+- Property 테스트는 설계 문서의 정확성 속성(Property 1~16)을 검증한다.
+- Backend Property 테스트는 Hypothesis(Python), Frontend Property 테스트는 fast-check(TypeScript)를 사용한다.
+- Unit 테스트는 특정 예제와 엣지 케이스를 검증한다.
