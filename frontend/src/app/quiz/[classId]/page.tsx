@@ -12,6 +12,8 @@ interface QuizQuestion {
   id: string;
   question_text: string;
   options: QuizOption[];
+  quiz_type?: 'common' | 'personal'; // 배지 표시용
+  source_page?: number;
 }
 
 interface Feedback {
@@ -23,15 +25,20 @@ interface Feedback {
 export default function QuizPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
   const router = useRouter();
+
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quizReady, setQuizReady] = useState(false);
 
-  // 선택된 답안 기록: { [questionId]: selectedOptionId }
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  // 평가 결과 기록: { [questionId]: Feedback }
-  const [feedback, setFeedback] = useState<Record<string, Feedback>>({});
-  // 채점 중인지 여부
-  const [submittingId, setSubmittingId] = useState<string | null>(null);
+  // 현재 문제 인덱스
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // 전체 결과 기록
+  const [results, setResults] = useState<{questionId: string; isCorrect: boolean}[]>([]);
+  const [quizDone, setQuizDone] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -41,37 +48,86 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
         const res = await fetch(`http://localhost:8000/api/quiz/${classId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (res.ok) {
           const data = await res.json();
-          setQuestions(data.quizzes?.[0]?.questions || []);
+          const allQuizzes = data.quizzes || [];
+
+          if (allQuizzes.length === 0) {
+            setQuizReady(false);
+            setLoading(false);
+            return;
+          }
+
+          // 공통 + 개인 퀴즈 문제 합치기
+          const allQuestions: QuizQuestion[] = [];
+          for (const quiz of allQuizzes) {
+            const quizType = quiz.quiz_type as 'common' | 'personal';
+            for (const q of (quiz.questions || [])) {
+              const optionsArr: string[] = Array.isArray(q.options) ? q.options : [];
+              allQuestions.push({
+                id: q.id,
+                question_text: q.question_text,
+                options: optionsArr.map((opt: string, i: number) => ({
+                  id: `opt_${i}`,
+                  text: opt
+                })),
+                quiz_type: quizType,
+                source_page: q.source_page
+              });
+            }
+          }
+
+          if (allQuestions.length > 0) {
+            setQuestions(allQuestions);
+            setQuizReady(true);
+          } else {
+            setQuizReady(false);
+          }
         } else {
-           throw new Error("API FAILED");
+          throw new Error("API FAILED");
         }
       } catch (e) {
         console.warn("API 미연동 또는 데이터 없음. 퀴즈 더미 로드...");
         setQuestions([
           {
             id: "q1",
-            question_text: "[공통] 수업 첫 번째 파트에서 가장 중요하게 다루어진 개념은 무엇입니까?",
+            question_text: "[공통] 수업에서 가장 중요하게 다루어진 개념은 무엇입니까?",
+            quiz_type: 'common',
+            source_page: 5,
             options: [
-              { id: "opt1", text: "데이터 모델링 기초" },
-              { id: "opt2", text: "API 보안 구조 설계" },
-              { id: "opt3", text: "React 최적화 기법" },
-              { id: "opt4", text: "상태 기반 UI 컴포넌트" }
+              { id: "opt_0", text: "데이터 모델링 기초" },
+              { id: "opt_1", text: "API 보안 구조 설계" },
+              { id: "opt_2", text: "React 최적화 기법" },
+              { id: "opt_3", text: "상태 기반 UI 컴포넌트" }
             ]
           },
           {
             id: "q2",
-            question_text: "[개인 맞춤] 질문하셨던 '의존성 주입(DI)'에 대해 올바르게 설명한 것은?",
+            question_text: "[공통] 소프트웨어의 '단일 책임 원칙(SRP)'에 대한 설명으로 올바른 것은?",
+            quiz_type: 'common',
+            source_page: 8,
             options: [
-              { id: "opt1", text: "결합도를 높여 디버깅을 어렵게 한다." },
-              { id: "opt2", text: "클래스 내부에서 객체를 직접 생성하는 방식이다." },
-              { id: "opt3", text: "외부에서 객체를 주입받아 유연성을 향상시킨다." },
-              { id: "opt4", text: "무조건 전역 변수로 관리하는 디자인 패턴이다." }
+              { id: "opt_0", text: "하나의 클래스가 모든 역할을 담당해야 한다" },
+              { id: "opt_1", text: "하나의 클래스는 하나의 책임만 가져야 한다" },
+              { id: "opt_2", text: "메서드는 항상 단일 반환값을 가진다" },
+              { id: "opt_3", text: "여러 클래스가 하나의 메서드를 공유한다" }
+            ]
+          },
+          {
+            id: "q3",
+            question_text: "[개인] 질문하셨던 '의존성 주입(DI)'에 대해 올바르게 설명한 것은?",
+            quiz_type: 'personal',
+            source_page: 12,
+            options: [
+              { id: "opt_0", text: "결합도를 높여 디버깅을 어렵게 한다" },
+              { id: "opt_1", text: "클래스 내부에서 객체를 직접 생성하는 방식이다" },
+              { id: "opt_2", text: "외부에서 객체를 주입받아 유연성을 향상시킨다" },
+              { id: "opt_3", text: "항상 전역 변수로 관리하는 디자인 패턴이다" }
             ]
           }
         ]);
+        setQuizReady(true);
       } finally {
         setLoading(false);
       }
@@ -79,199 +135,316 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
     fetchQuizzes();
   }, [classId]);
 
-  const handleOptionSelect = (questionId: string, optionId: string) => {
-    if (feedback[questionId]) return; // 이미 채점된 문항은 선택 불가
-    setAnswers(prev => ({ ...prev, [questionId]: optionId }));
-  };
+  const handleSubmit = async () => {
+    if (!selectedOption || submitting) return;
+    const currentQ = questions[currentIdx];
+    const optionText = currentQ.options.find(o => o.id === selectedOption)?.text || selectedOption;
 
-  const handleSubmit = async (questionId: string) => {
-    const selectedAnswer = answers[questionId];
-    if (!selectedAnswer) return;
-
-    setSubmittingId(questionId);
-    
+    setSubmitting(true);
     try {
       const token = localStorage.getItem('auth_token') || 'dev_student';
-      // options에서 선택된 text를 추출
-      const qSelected = questions.find(q => q.id === questionId);
-      const optText = qSelected?.options.find(o => o.id === selectedAnswer)?.text || selectedAnswer;
-      
-      const res = await fetch(`http://localhost:8000/api/quiz/${classId}/submit/${questionId}`, {
+      const res = await fetch(`http://localhost:8000/api/quiz/${classId}/submit/${currentQ.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ answer: optText })
+        body: JSON.stringify({ answer: optionText })
       });
 
       if (res.ok) {
         const data = await res.json();
-        setFeedback(prev => ({
-          ...prev,
-          [questionId]: { 
-            isCorrect: data.is_correct, 
-            message: data.message, 
-            explanation: data.summary || data.step_by_step_explanation || "해설이 제공되지 않았습니다."
-          }
-        }));
+        setFeedback({
+          isCorrect: data.is_correct,
+          message: data.is_correct ? '정답입니다!' : '오답입니다.',
+          explanation: data.summary || data.step_by_step_explanation || "해설이 제공되지 않았습니다."
+        });
+        setResults(prev => [...prev, { questionId: currentQ.id, isCorrect: data.is_correct }]);
       } else {
-         throw new Error("서버 에러");
+        throw new Error("서버 에러");
       }
     } catch (e) {
-      console.warn("채점 API 연동 실패 더미 전환");
-      let isCorrect = false;
-      let msg = "";
-      let expl = "";
-
-      if (questionId === "q1" && selectedAnswer === "opt1") {
-        isCorrect = true;
-        msg = "정답입니다!";
-        expl = "[핵심 개념 요약] 이번 단원에서는 관계형 DB의 근간이 되는 데이터 모델링 기초에 대해 깊이 있게 다루었습니다.";
-      } else if (questionId === "q2" && selectedAnswer === "opt3") {
-        isCorrect = true;
-        msg = "정답입니다!";
-        expl = "[핵심 개념 요약] 의존성 주입은 객체 간의 결합도를 낮추어 테스트와 유지보수를 매우 쉽게 만듭니다.";
-      } else {
-        isCorrect = false;
-        msg = "오답입니다.";
-        expl = "[단계별 해설] 문제를 다시 확인해주세요. 정답은 관련된 책임과 결합도를 어떻게 분리할 것인가에 대한 내용이었습니다.";
-      }
-
-      setFeedback(prev => ({
-        ...prev,
-        [questionId]: { isCorrect, message: msg, explanation: expl }
-      }));
+      // 더미 채점
+      const dummyAnswers: Record<string, string> = {
+        q1: "opt_0", q2: "opt_1", q3: "opt_2"
+      };
+      const isCorrect = dummyAnswers[currentQ.id] === selectedOption;
+      setFeedback({
+        isCorrect,
+        message: isCorrect ? '정답입니다!' : '오답입니다.',
+        explanation: isCorrect
+          ? '[핵심 개념 요약] 선택하신 개념이 이번 단원에서 핵심적으로 다루어진 내용입니다.'
+          : '[단계별 해설] 정답을 다시 한 번 검토해보세요. 관련 개념의 정의에 초점을 맞춰보시기 바랍니다.'
+      });
+      setResults(prev => [...prev, { questionId: currentQ.id, isCorrect }]);
     } finally {
-      setSubmittingId(null);
+      setSubmitting(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIdx < questions.length - 1) {
+      setCurrentIdx(prev => prev + 1);
+      setSelectedOption(null);
+      setFeedback(null);
+    } else {
+      setQuizDone(true);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="animate-pulse flex flex-col items-center">
-          <span className="text-4xl">📝</span>
-          <p className="mt-4 text-indigo-600 dark:text-indigo-400 font-medium">퀴즈 데이터를 불러오는 중...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-indigo-200 dark:border-indigo-900 rounded-full animate-spin border-t-indigo-600"></div>
+            <span className="absolute inset-0 flex items-center justify-center text-2xl">📝</span>
+          </div>
+          <p className="text-indigo-700 dark:text-indigo-300 font-semibold text-lg">퀴즈를 불러오는 중...</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">AI가 맞춤형 퀴즈를 준비하고 있습니다.</p>
         </div>
       </div>
     );
   }
 
-  const allDone = questions.every(q => feedback[q.id]);
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-8 p-4 bg-white dark:bg-gray-800 shadow rounded-lg border-l-4 border-indigo-500">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">학습 점검 퀴즈</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            수업 코드: <span className="font-mono">{classId.toUpperCase()}</span>
+  if (!quizReady || questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-10 max-w-md text-center">
+          <div className="text-5xl mb-4">⏳</div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">퀴즈 준비 중입니다</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            AI가 퀴즈를 생성하고 있습니다. 잠시 후 다시 시도해 주세요.
           </p>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            강의 내용을 바탕으로 생성된 퀴즈입니다. 각 문항을 풀고 정답을 확인하세요.
-          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition"
+          >
+            새로고침
+          </button>
         </div>
+      </div>
+    );
+  }
 
-        <div className="space-y-8">
-          {questions.map((q, idx) => {
-            const fb = feedback[q.id];
-            const isAnswered = !!fb;
+  // 퀴즈 완료 화면
+  if (quizDone) {
+    const correctCount = results.filter(r => r.isCorrect).length;
+    const accuracy = Math.round((correctCount / questions.length) * 100);
+    const grade = accuracy >= 90 ? '🏆 최우수' : accuracy >= 70 ? '🥈 우수' : accuracy >= 50 ? '🥉 보통' : '📚 복습 필요';
 
-            return (
-              <div key={q.id} className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
-                <div className="px-4 py-5 sm:px-6 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                    Q{idx + 1}. {q.question_text}
-                  </h3>
-                </div>
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="space-y-3">
-                    {q.options.map(opt => {
-                      const isSelected = answers[q.id] === opt.id;
-                      let optionClass = "border-gray-300 dark:border-gray-600";
-                      let bgClass = isSelected ? "bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500" : "bg-white dark:bg-gray-800";
-                      
-                      // 채점 끝난 후 선택 불가 UI
-                      if (isAnswered) {
-                        if (isSelected) {
-                          bgClass = fb.isCorrect 
-                            ? "bg-green-50 dark:bg-green-900/40 border-green-500 ring-2 ring-green-500" 
-                            : "bg-red-50 dark:bg-red-900/40 border-red-500 ring-2 ring-red-500";
-                        }
-                      }
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-10 px-4">
+        <div className="max-w-lg w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-10 text-center border border-gray-100 dark:border-gray-700">
+            <div className="text-6xl mb-4">{accuracy >= 70 ? '🎉' : '📚'}</div>
+            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">퀴즈 완료!</h1>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">수고하셨습니다. 최종 결과를 확인해보세요.</p>
 
-                      return (
-                        <div 
-                          key={opt.id}
-                          onClick={() => handleOptionSelect(q.id, opt.id)}
-                          className={`relative border rounded-lg p-4 flex cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition ${bgClass} ${optionClass}`}
-                        >
-                          <div className="flex items-center h-5">
-                            <input
-                              type="radio"
-                              name={`question-${q.id}`}
-                              checked={isSelected}
-                              onChange={() => handleOptionSelect(q.id, opt.id)}
-                              disabled={isAnswered}
-                              className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 disabled:opacity-50"
-                            />
-                          </div>
-                          <div className="ml-3 flex flex-col">
-                            <span className={`block text-sm font-medium ${isAnswered && isSelected && fb.isCorrect ? 'text-green-800 dark:text-green-200' : isAnswered && isSelected && !fb.isCorrect ? 'text-red-800 dark:text-red-200' : 'text-gray-900 dark:text-gray-100'}`}>
-                              {opt.text}
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  
-                  {/* 제출 및 피드백 영역 */}
-                  <div className="mt-6 flex flex-col items-end">
-                    {!isAnswered ? (
-                      <button
-                        onClick={() => handleSubmit(q.id)}
-                        disabled={!answers[q.id] || submittingId === q.id}
-                        className="px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition"
-                      >
-                        {submittingId === q.id ? "채점 중..." : "정답 확인하기"}
-                      </button>
-                    ) : (
-                      // 슬라이드 다운 애니메이션 뷰
-                      <div className="w-full mt-4 p-4 rounded-md animate-fade-in-down border" 
-                        style={{
-                          backgroundColor: fb.isCorrect ? 'rgba(240, 253, 244, 0.5)' : 'rgba(254, 242, 242, 0.5)',
-                          borderColor: fb.isCorrect ? '#86efac' : '#fca5a5'
-                        }}>
-                        <div className="flex items-center mb-2">
-                          <span className="text-xl mr-2">{fb.isCorrect ? '✅' : '❌'}</span>
-                          <span className={`font-bold text-lg ${fb.isCorrect ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
-                            {fb.message}
-                          </span>
-                        </div>
-                        <p className={`text-sm ${fb.isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
-                          {fb.explanation}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {/* 원형 점수 표시 */}
+            <div className="relative inline-flex items-center justify-center mb-6">
+              <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                <circle
+                  cx="60" cy="60" r="54" fill="none"
+                  stroke={accuracy >= 70 ? '#6366f1' : accuracy >= 50 ? '#f59e0b' : '#ef4444'}
+                  strokeWidth="10"
+                  strokeDasharray={`${(accuracy / 100) * 339.3} 339.3`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute text-center">
+                <span className="text-4xl font-black text-gray-900 dark:text-white">{accuracy}%</span>
               </div>
-            );
-          })}
-        </div>
+            </div>
 
-        {allDone && (
-          <div className="mt-10 flex justify-center pb-10">
+            <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mb-6">{grade}</div>
+
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl">
+                <div className="text-2xl font-bold text-indigo-600">{questions.length}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">전체 문제</div>
+              </div>
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
+                <div className="text-2xl font-bold text-green-600">{correctCount}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">정답</div>
+              </div>
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl">
+                <div className="text-2xl font-bold text-red-500">{questions.length - correctCount}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">오답</div>
+              </div>
+            </div>
+
             <button
               onClick={() => router.push(`/report/${classId}`)}
-              className="px-8 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transform transition hover:scale-105"
+              className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105 text-lg"
             >
               📊 최종 학습 리포트 확인하기
             </button>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  // 현재 문제
+  const currentQ = questions[currentIdx];
+  const progress = ((currentIdx) / questions.length) * 100;
+  const isCommon = currentQ.quiz_type === 'common';
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-10 px-4">
+      <div className="max-w-2xl mx-auto">
+        
+        {/* 헤더 */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {currentIdx + 1} / {questions.length}
+            </span>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+              isCommon
+                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+            }`}>
+              {isCommon ? '📚 공통 문제' : '⭐ 개인 맞춤 문제'}
+            </span>
+          </div>
+          {/* 진행도 바 */}
+          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 문제 카드 */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          {/* 문제 */}
+          <div className="px-8 py-6 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-100 dark:border-gray-700">
+            {currentQ.source_page && (
+              <span className="text-xs text-gray-400 dark:text-gray-500 mb-2 block">
+                📄 {currentQ.source_page}페이지 기반
+              </span>
+            )}
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-relaxed">
+              Q{currentIdx + 1}. {currentQ.question_text.replace(/^\[공통\]\s*|\[개인\]\s*/g, '')}
+            </h2>
+          </div>
+
+          {/* 선택지 */}
+          <div className="px-8 py-6 space-y-3">
+            {currentQ.options.map((opt, i) => {
+              const isSelected = selectedOption === opt.id;
+              const answered = !!feedback;
+
+              let optClass = 'border-gray-200 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10';
+              let textClass = 'text-gray-700 dark:text-gray-200';
+              const numberClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+
+              if (isSelected && !answered) {
+                optClass = 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30';
+                textClass = 'text-indigo-700 dark:text-indigo-300 font-semibold';
+              }
+              if (answered && isSelected) {
+                if (feedback.isCorrect) {
+                  optClass = 'border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-400';
+                  textClass = 'text-green-700 dark:text-green-300 font-semibold';
+                } else {
+                  optClass = 'border-red-500 bg-red-50 dark:bg-red-900/30 ring-2 ring-red-400';
+                  textClass = 'text-red-700 dark:text-red-300 font-semibold';
+                }
+              }
+
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => !answered && setSelectedOption(opt.id)}
+                  disabled={answered}
+                  className={`w-full text-left border-2 rounded-xl p-4 flex items-center space-x-4 transition-all duration-200 ${optClass} ${answered ? 'cursor-default' : 'cursor-pointer'}`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${numberClass}`}>
+                    {['①','②','③','④'][i]}
+                  </span>
+                  <span className={`text-sm ${textClass}`}>{opt.text}</span>
+                  {answered && isSelected && (
+                    <span className="ml-auto text-xl flex-shrink-0">
+                      {feedback.isCorrect ? '✅' : '❌'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 해설 영역 */}
+          {feedback && (
+            <div className={`mx-8 mb-6 p-5 rounded-xl border-2 ${
+              feedback.isCorrect
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+            }`}>
+              <div className="flex items-center mb-2">
+                <span className="text-xl mr-2">{feedback.isCorrect ? '✅' : '❌'}</span>
+                <span className={`font-bold text-base ${feedback.isCorrect ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
+                  {feedback.message}
+                </span>
+              </div>
+              <p className={`text-sm leading-relaxed ${feedback.isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                {feedback.explanation}
+              </p>
+            </div>
+          )}
+
+          {/* 제출 / 다음 버튼 */}
+          <div className="px-8 pb-8">
+            {!feedback ? (
+              <button
+                onClick={handleSubmit}
+                disabled={!selectedOption || submitting}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2"
+              >
+                {submitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>채점 중...</span>
+                  </>
+                ) : (
+                  <span>✔️ 정답 확인하기</span>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl shadow-md transition transform hover:scale-105"
+              >
+                {currentIdx < questions.length - 1 ? '다음 문제 →' : '📊 결과 보기'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 하단 진행 점 표시 */}
+        <div className="flex justify-center space-x-2 mt-6">
+          {questions.map((_, i) => (
+            <div
+              key={i}
+              className={`w-2.5 h-2.5 rounded-full transition-all ${
+                i < results.length
+                  ? results[i].isCorrect
+                    ? 'bg-green-500'
+                    : 'bg-red-400'
+                  : i === currentIdx
+                    ? 'bg-indigo-600 w-6'
+                    : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

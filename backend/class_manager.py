@@ -105,14 +105,35 @@ def end_class(class_id: str, user: dict = Depends(get_current_user)):
     target_class = class_res.data[0]
     if target_class["instructor_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="FORBIDDEN")
+
+    if target_class.get("status") == "ended":
+        return {"message": "Already ended", "class": target_class}
         
-    updated = supabase.table("classes").update({"status": "ended"}).eq("id", target_class["id"]).execute()
+    from datetime import datetime, timezone
+    updated = supabase.table("classes").update({
+        "status": "ended",
+        "ended_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", target_class["id"]).execute()
     
-    # 여기서 향후 Quiz_Generator 트리거
+    # 퀴즈 생성 트리거 (공통 + 모든 학생 개인 퀴즈)
     from quiz_generator import trigger_quiz_generation
     trigger_quiz_generation(target_class["id"])
     
     return {"message": "Class ended successfully", "class": updated.data[0]}
+
+@router.get("/{class_id}/status")
+def get_class_status(class_id: str):
+    """수업 상태 조회 (학생 폴링용 - 인증 불필요)"""
+    class_res = supabase.table("classes").select("class_id, status, ended_at").eq("class_id", class_id).execute()
+    if not class_res.data:
+        raise HTTPException(status_code=404, detail="INVALID_CLASS_ID")
+    
+    data = class_res.data[0]
+    return {
+        "class_id": data["class_id"],
+        "status": data["status"],
+        "ended_at": data.get("ended_at")
+    }
 
 @router.get("/{class_id}/roster")
 def get_class_roster(class_id: str, user: dict = Depends(get_current_user)):

@@ -63,8 +63,10 @@ def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)
         else:
             ai_reply = str(ai_reply)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"AI API Error: {e}")
-        ai_reply = "API 연동이 완료되지 않았거나 오류가 발생했습니다. (Placeholder Response)"
+        ai_reply = f"AI API 오류 발생: {str(e)}"
 
     # 3. 대화 세션 기록 및 4. 인터랙션 기록 (DB 에러 무시)
     try:
@@ -115,8 +117,10 @@ def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_use
         else:
             ai_reply = str(ai_reply)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"AI API Vision Error: {e}")
-        ai_reply = "Vision API 연동이 완료되지 않았거나 처리 오류가 발생했습니다. (Placeholder Response)"
+        ai_reply = f"Vision API 오류 발생: {str(e)}"
 
     try:
         chat_manager.add_message(session_id, "user", "[영역 캡처 이미지 질문]")
