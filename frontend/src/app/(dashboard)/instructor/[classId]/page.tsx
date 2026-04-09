@@ -3,10 +3,13 @@
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import PDFViewer from '@/components/PDFViewer';
+import dynamic from 'next/dynamic';
+const PDFViewer = dynamic(() => import('@/components/PDFViewer'), { ssr: false });
+
 import HeatmapPanel from '@/components/HeatmapPanel';
 import StudentRoster from '@/components/StudentRoster';
 import ToastNotifier from '@/components/ToastNotifier';
+
 
 export default function InstructorDashboard({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
@@ -23,8 +26,10 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
     const oldPage = currentPage;
     setCurrentPage(newPage);
     try {
-      const token = localStorage.getItem('auth_token') || '';
-      const res = await fetch(`http://localhost:8000/api/classes/${classId}/heatmap`, {
+      const token = sessionStorage.getItem('auth_token') || '';
+
+      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/heatmap`, {
+
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -50,8 +55,10 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
     setIsEnding(true);
     setEndError('');
     try {
-      const token = localStorage.getItem('auth_token') || '';
-      const res = await fetch(`http://localhost:8000/api/classes/${classId}/end`, {
+      const token = sessionStorage.getItem('auth_token') || '';
+
+      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/end`, {
+
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

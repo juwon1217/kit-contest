@@ -1,18 +1,38 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import config
 from config import ERROR_MAP
+from supabase import acreate_client
 
-app = FastAPI(title="Edu-Lens AI Platform API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 애플리케이션 시작 시 Supabase 클라이언트 초기화
+    config.supabase = await acreate_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+    yield
+    # 종료 시 필요하다면 정리 로직 추가 가능
+
+app = FastAPI(title="Edu-Lens AI Platform API", lifespan=lifespan)
+
+
 
 # CORS Middleware
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # MVP 환경, 보안 상 특정 도메인 제한 필요
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Exception Handler for Custom Errors
 @app.exception_handler(HTTPException)

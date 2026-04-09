@@ -35,17 +35,20 @@ class ExplainImageRequest(BaseModel):
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+    page: int
+
 
 @router.post("/explain")
-def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)):
-    from config import supabase
-    class_res = supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+async def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)):
+    import config
+    class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+
     if not class_res.data:
         raise HTTPException(status_code=404, detail="INVALID_CLASS_ID")
     internal_class_id = class_res.data[0]["id"]
 
     # 1. 채팅 세션 생성
-    session_id = chat_manager.create_session(internal_class_id, user["id"], "text_drag", req.text)
+    session_id = await chat_manager.create_session(internal_class_id, user["id"], "text_drag", req.text)
 
     # 2. AI 해설 생성
     try:
@@ -54,7 +57,7 @@ def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)
             SystemMessage(content="당신은 친절한 AI 조교입니다. 학생이 수업 자료에서 보낸 텍스트를 반드시 '한국어'로, 최대한 쉽고 핵심만 짧게 요약해서 설명해 주세요."),
             HumanMessage(content=f"이 텍스트를 쉽게 설명해 줘: '{req.text}'. PDF 문맥: {req.pdf_context}")
         ]
-        response = model.invoke(messages)
+        response = await model.ainvoke(messages)
         ai_reply = response.content
         if isinstance(ai_reply, list):
             ai_reply = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in ai_reply])
@@ -70,8 +73,8 @@ def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)
 
     # 3. 대화 세션 기록 및 4. 인터랙션 기록 (DB 에러 무시)
     try:
-        chat_manager.add_message(session_id, "user", req.text)
-        chat_manager.add_message(session_id, "assistant", ai_reply)
+        await chat_manager.add_message(session_id, "user", req.text)
+        await chat_manager.add_message(session_id, "assistant", ai_reply)
 
         interaction = InteractionCreate(
             class_id=internal_class_id,
@@ -81,21 +84,22 @@ def explain_text(req: ExplainTextRequest, user: dict = Depends(get_current_user)
             question_content=req.text,
             ai_response=ai_reply
         )
-        interaction_recorder.record(interaction)
+        await interaction_recorder.record(interaction)
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
 
     return {"explanation": ai_reply, "session_id": session_id}
 
 @router.post("/explain-image")
-def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_user)):
-    from config import supabase
-    class_res = supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+async def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_user)):
+    import config
+    class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+
     if not class_res.data:
         raise HTTPException(status_code=404, detail="INVALID_CLASS_ID")
     internal_class_id = class_res.data[0]["id"]
 
-    session_id = chat_manager.create_session(internal_class_id, user["id"], "area_capture", "image_url_placeholder")
+    session_id = await chat_manager.create_session(internal_class_id, user["id"], "area_capture", "image_url_placeholder")
 
     try:
         model = get_chat_model()
@@ -108,7 +112,7 @@ def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_use
                 ]
             )
         ]
-        response = model.invoke(messages)
+        response = await model.ainvoke(messages)
         ai_reply = response.content
         if isinstance(ai_reply, list):
             ai_reply = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in ai_reply])
@@ -123,8 +127,8 @@ def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_use
         ai_reply = f"Vision API 오류 발생: {str(e)}"
 
     try:
-        chat_manager.add_message(session_id, "user", "[영역 캡처 이미지 질문]")
-        chat_manager.add_message(session_id, "assistant", ai_reply)
+        await chat_manager.add_message(session_id, "user", "[영역 캡처 이미지 질문]")
+        await chat_manager.add_message(session_id, "assistant", ai_reply)
 
         interaction = InteractionCreate(
             class_id=internal_class_id,
@@ -135,16 +139,16 @@ def explain_image(req: ExplainImageRequest, user: dict = Depends(get_current_use
             ai_response=ai_reply,
             image_url="base64_data"
         )
-        interaction_recorder.record(interaction)
+        await interaction_recorder.record(interaction)
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
 
     return {"explanation": ai_reply, "session_id": session_id}
 
 @router.post("/chat")
-def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
+async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     # 1. 히스토리 로드
-    history = chat_manager.get_history(req.session_id)
+    history = await chat_manager.get_history(req.session_id)
     
     messages = [SystemMessage(content="당신은 친절한 AI 조교입니다. 앞선 대화 문맥을 파악하여 학생의 추가 질문에 반드시 '한국어'로 짧고 쉽게 답변해 주세요.")]
     for msg in history:
@@ -158,7 +162,7 @@ def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     # 2. AI 호출
     try:
         model = get_chat_model()
-        response = model.invoke(messages)
+        response = await model.ainvoke(messages)
         ai_reply = response.content
         if isinstance(ai_reply, list):
             ai_reply = " ".join([str(p.get("text", p)) if isinstance(p, dict) else str(p) for p in ai_reply])
@@ -172,24 +176,27 @@ def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
 
     # 3, 4. 메시지 및 상호작용 기록
     try:
-        chat_manager.add_message(req.session_id, "user", req.message)
-        chat_manager.add_message(req.session_id, "assistant", ai_reply)
+        await chat_manager.add_message(req.session_id, "user", req.message)
+        await chat_manager.add_message(req.session_id, "assistant", ai_reply)
 
-        from config import supabase
-        session_data = supabase.table("chat_sessions").select("class_id").eq("id", req.session_id).execute()
+        import config
+        session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", req.session_id).execute()
+
         internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
 
         interaction = InteractionCreate(
             class_id=internal_class_id,
             student_id=user["id"],
-            page_number=1, # 임시
+            page_number=req.page, # 전달받은 실제 페이지 번호 기록
             interaction_type="follow_up",
             question_content=req.message,
             ai_response=ai_reply
         )
+
         if internal_class_id != "unknown_class":
-            interaction_recorder.record(interaction)
+            await interaction_recorder.record(interaction)
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
     
     return {"reply": ai_reply}
+

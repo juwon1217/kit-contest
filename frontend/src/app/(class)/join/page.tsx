@@ -20,8 +20,10 @@ export default function JoinClassPage() {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('auth_token') || 'dev_student';
-      const res = await fetch(`http://localhost:8000/api/classes/${classId}/join`, {
+      const token = sessionStorage.getItem('auth_token') || 'dev_student';
+
+      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/join`, {
+
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

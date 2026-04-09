@@ -21,8 +21,10 @@ export default function StudentRoster({ classId }: StudentRosterProps) {
   useEffect(() => {
     const fetchRoster = async () => {
       try {
-        const token = localStorage.getItem('auth_token') || 'dev_instructor';
-        const res = await fetch(`http://localhost:8000/api/classes/${classId}/roster`, {
+        const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
+
+        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/roster`, {
+
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

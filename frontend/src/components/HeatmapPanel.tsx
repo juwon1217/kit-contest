@@ -22,8 +22,10 @@ export default function HeatmapPanel({ classId, totalPages, onPageClick, current
   useEffect(() => {
     const fetchHeatmap = async () => {
       try {
-        const token = localStorage.getItem('auth_token') || 'dev_instructor';
-        const res = await fetch(`http://localhost:8000/api/classes/${classId}/heatmap`, {
+        const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
+
+        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/heatmap`, {
+
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {

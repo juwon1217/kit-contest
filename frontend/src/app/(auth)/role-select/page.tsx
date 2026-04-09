@@ -16,7 +16,8 @@ export default function RoleSelectPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/auth/simple-login', {
+      const res = await fetch('http://127.0.0.1:8000/api/auth/simple-login', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,8 +34,9 @@ export default function RoleSelectPage() {
       }
 
       const data = await res.json();
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user_role', data.user.role);
+      sessionStorage.setItem('auth_token', data.token);
+      sessionStorage.setItem('user_role', data.user.role);
+
 
       if (selectedRole === 'instructor') {
         router.push('/create');

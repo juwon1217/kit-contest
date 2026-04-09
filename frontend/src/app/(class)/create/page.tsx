@@ -23,13 +23,16 @@ export default function CreateClassPage() {
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('auth_token') || 'dev_instructor';
+      const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
       const formData = new FormData();
+
+
       formData.append('title', title);
       formData.append('pdf_file', file);
       formData.append('total_pages', '24'); // MVP 임시 페이지 수 지정
       
-      const res = await fetch('http://localhost:8000/api/classes', {
+      const res = await fetch('http://127.0.0.1:8000/api/classes', {
+
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

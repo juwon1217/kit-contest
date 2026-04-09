@@ -1,7 +1,7 @@
 import os
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase import acreate_client, AsyncClient
 
 load_dotenv()
 
@@ -9,17 +9,9 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL", "YOUR_SUPABASE_URL_HERE")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "YOUR_SUPABASE_SERVICE_KEY_HERE")
 
-def get_supabase_client() -> Client:
-    # URL이나 Key가 올바르지 않으면 예외가 발생할 수 있지만, MVP 개발 단계이므로 일단 생성 시도
-    try:
-        return create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as e:
-        print(f"Supabase Client Initialization Error (API Keys may be missing): {e}")
-        # MVP용 더미 클라이언트 생성을 피하기 위해 다시 throw하거나 None을 반환
-        return None
+# 전역 비동기 클라이언트 인스턴스 (main.py의 lifespan에서 초기화됨)
+supabase: AsyncClient = None
 
-# 전역 클라이언트 인스턴스
-supabase: Client = get_supabase_client()
 
 # 공통 에러 응답 포맷
 class ErrorResponse(BaseModel):

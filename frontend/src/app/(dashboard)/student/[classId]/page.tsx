@@ -3,8 +3,11 @@
 import { useState, use, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import PDFViewer from '@/components/PDFViewer';
+import dynamic from 'next/dynamic';
+const PDFViewer = dynamic(() => import('@/components/PDFViewer'), { ssr: false });
+
 import AISidebar from '@/components/AISidebar';
+
 
 export default function StudentDashboard({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
@@ -12,6 +15,8 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
 
   // 수업 종료 감지 상태
   const [classStatus, setClassStatus] = useState<'active' | 'ended' | 'unknown'>('unknown');
@@ -51,7 +56,8 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
   const simulateAICall = async (action: 'explain' | 'explain-image' | 'chat', payload: any) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('auth_token') || 'dev_student';
+      const token = sessionStorage.getItem('auth_token') || 'dev_student';
+
       let endpoint = '';
       let reqBody: any = {};
 
@@ -63,8 +69,9 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
         reqBody = { class_id: classId, page: payload.page, image_base64: payload.image64, pdf_context: "" };
       } else {
         endpoint = '/api/ai/chat';
-        reqBody = { session_id: sessionId || "dummy_session", message: payload.message };
+        reqBody = { session_id: sessionId || "dummy_session", message: payload.message, page: payload.page };
       }
+
 
       const res = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
@@ -124,8 +131,9 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
       content: text,
       contextType: 'follow_up'
     }]);
-    simulateAICall('chat', { message: text, sessionId });
+    simulateAICall('chat', { message: text, sessionId, page: currentPage });
   };
+
 
   const handleGoToQuiz = () => {
     router.push(`/quiz/${classId}`);
@@ -194,7 +202,9 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
               role="student"
               onTextSelect={handleTextSelect}
               onAreaCapture={handleAreaCapture}
+              onPageChange={setCurrentPage}
             />
+
           </Panel>
 
           <PanelResizeHandle className="w-2 bg-gray-200 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-indigo-600 transition-colors cursor-col-resize flex items-center justify-center">

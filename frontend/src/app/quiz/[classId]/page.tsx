@@ -44,10 +44,12 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
     const fetchQuizzes = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('auth_token') || 'dev_student';
-        const res = await fetch(`http://localhost:8000/api/quiz/${classId}`, {
+        const token = sessionStorage.getItem('auth_token') || 'dev_student';
+
+        const res = await fetch(`http://127.0.0.1:8000/api/quiz/${classId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
 
         if (res.ok) {
           const data = await res.json();
@@ -59,7 +61,6 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
             return;
           }
 
-          // 공통 + 개인 퀴즈 문제 합치기
           const allQuestions: QuizQuestion[] = [];
           for (const quiz of allQuizzes) {
             const quizType = quiz.quiz_type as 'common' | 'personal';
@@ -88,46 +89,8 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
           throw new Error("API FAILED");
         }
       } catch (e) {
-        console.warn("API 미연동 또는 데이터 없음. 퀴즈 더미 로드...");
-        setQuestions([
-          {
-            id: "q1",
-            question_text: "[공통] 수업에서 가장 중요하게 다루어진 개념은 무엇입니까?",
-            quiz_type: 'common',
-            source_page: 5,
-            options: [
-              { id: "opt_0", text: "데이터 모델링 기초" },
-              { id: "opt_1", text: "API 보안 구조 설계" },
-              { id: "opt_2", text: "React 최적화 기법" },
-              { id: "opt_3", text: "상태 기반 UI 컴포넌트" }
-            ]
-          },
-          {
-            id: "q2",
-            question_text: "[공통] 소프트웨어의 '단일 책임 원칙(SRP)'에 대한 설명으로 올바른 것은?",
-            quiz_type: 'common',
-            source_page: 8,
-            options: [
-              { id: "opt_0", text: "하나의 클래스가 모든 역할을 담당해야 한다" },
-              { id: "opt_1", text: "하나의 클래스는 하나의 책임만 가져야 한다" },
-              { id: "opt_2", text: "메서드는 항상 단일 반환값을 가진다" },
-              { id: "opt_3", text: "여러 클래스가 하나의 메서드를 공유한다" }
-            ]
-          },
-          {
-            id: "q3",
-            question_text: "[개인] 질문하셨던 '의존성 주입(DI)'에 대해 올바르게 설명한 것은?",
-            quiz_type: 'personal',
-            source_page: 12,
-            options: [
-              { id: "opt_0", text: "결합도를 높여 디버깅을 어렵게 한다" },
-              { id: "opt_1", text: "클래스 내부에서 객체를 직접 생성하는 방식이다" },
-              { id: "opt_2", text: "외부에서 객체를 주입받아 유연성을 향상시킨다" },
-              { id: "opt_3", text: "항상 전역 변수로 관리하는 디자인 패턴이다" }
-            ]
-          }
-        ]);
-        setQuizReady(true);
+        console.error("퀴즈 데이터를 불러오는데 실패했습니다.", e);
+        setQuizReady(false);
       } finally {
         setLoading(false);
       }
@@ -142,8 +105,9 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('auth_token') || 'dev_student';
-      const res = await fetch(`http://localhost:8000/api/quiz/${classId}/submit/${currentQ.id}`, {
+      const token = sessionStorage.getItem('auth_token') || 'dev_student';
+
+      const res = await fetch(`http://127.0.0.1:8000/api/quiz/${classId}/submit/${currentQ.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,6 +115,7 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
         },
         body: JSON.stringify({ answer: optionText })
       });
+
 
       if (res.ok) {
         const data = await res.json();
@@ -164,23 +129,13 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
         throw new Error("서버 에러");
       }
     } catch (e) {
-      // 더미 채점
-      const dummyAnswers: Record<string, string> = {
-        q1: "opt_0", q2: "opt_1", q3: "opt_2"
-      };
-      const isCorrect = dummyAnswers[currentQ.id] === selectedOption;
-      setFeedback({
-        isCorrect,
-        message: isCorrect ? '정답입니다!' : '오답입니다.',
-        explanation: isCorrect
-          ? '[핵심 개념 요약] 선택하신 개념이 이번 단원에서 핵심적으로 다루어진 내용입니다.'
-          : '[단계별 해설] 정답을 다시 한 번 검토해보세요. 관련 개념의 정의에 초점을 맞춰보시기 바랍니다.'
-      });
-      setResults(prev => [...prev, { questionId: currentQ.id, isCorrect }]);
+      console.error("채점 요청 중 오류 발생", e);
+      alert("채점 서버와 통신 중 오류가 발생했습니다.");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const handleNext = () => {
     if (currentIdx < questions.length - 1) {

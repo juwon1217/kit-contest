@@ -33,7 +33,8 @@ export default function PDFViewer({ classId, role, onTextSelect, onAreaCapture, 
     const fetchPdf = async () => {
       try {
         // 백엔드에서 PDF 로드 시도 (학생/강사 모두 자동 연동)
-        const res = await fetch(`http://localhost:8000/api/classes/${classId}/pdf`);
+        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/pdf`);
+
         if (res.ok) {
           const blob = await res.blob();
           setPdfUrl(URL.createObjectURL(blob));

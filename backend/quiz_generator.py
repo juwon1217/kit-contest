@@ -1,14 +1,16 @@
 import asyncio
 import json
 import re
-from config import supabase
+import config
+
 from ai_engine import get_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 
 
-def get_hot_pages(class_id: str, top_n: int = 5) -> list[int]:
+async def get_hot_pages(class_id: str, top_n: int = 5) -> list[int]:
     """해당 강좌에서 가장 질문이 많았던 상위 N개 페이지 번호를 반환"""
-    res = supabase.table("interactions").select("page_number").eq("class_id", class_id).execute()
+    res = await config.supabase.table("interactions").select("page_number").eq("class_id", class_id).execute()
+
     if not res.data:
         return [1, 2]
 
@@ -21,9 +23,11 @@ def get_hot_pages(class_id: str, top_n: int = 5) -> list[int]:
     return [p for p, _ in sorted_pages[:top_n]]
 
 
-def get_student_hot_pages(class_id: str, student_id: str, top_n: int = 3) -> list[int]:
+
+async def get_student_hot_pages(class_id: str, student_id: str, top_n: int = 3) -> list[int]:
     """특정 학생이 가장 많이 질문한 상위 N개 페이지 번호를 반환"""
-    res = supabase.table("interactions").select("page_number").eq("class_id", class_id).eq("student_id", student_id).execute()
+    res = await config.supabase.table("interactions").select("page_number").eq("class_id", class_id).eq("student_id", student_id).execute()
+
     if not res.data:
         return []
 
@@ -34,6 +38,7 @@ def get_student_hot_pages(class_id: str, student_id: str, top_n: int = 3) -> lis
 
     sorted_pages = sorted(counts.items(), key=lambda x: x[1], reverse=True)
     return [p for p, _ in sorted_pages[:top_n]]
+
 
 
 def _parse_ai_quiz_response(raw_text: str) -> list[dict] | None:
@@ -73,7 +78,7 @@ def _build_quiz_prompt(pages: list[int], quiz_label: str = "공통") -> str:
 
 async def generate_common_quiz(class_id: str):
     """수업 종료 시 발동되는 공통 퀴즈 생성 로직 (실제 Gemini AI 사용)"""
-    hot_pages = get_hot_pages(class_id, top_n=5)
+    hot_pages = await get_hot_pages(class_id, top_n=5)
     print(f"[QuizGen] 공통 퀴즈 생성 시작 - class_id={class_id}, hot_pages={hot_pages}")
 
     # 1. 퀴즈 마스터 생성
@@ -81,11 +86,13 @@ async def generate_common_quiz(class_id: str):
         "class_id": class_id,
         "quiz_type": "common",
     }
-    quiz_res = supabase.table("quizzes").insert(quiz_data).execute()
+    quiz_res = await config.supabase.table("quizzes").insert(quiz_data).execute()
+
     if not quiz_res.data:
         print("[QuizGen] 퀴즈 마스터 생성 실패")
         return None
     quiz_id = quiz_res.data[0]["id"]
+
 
     # 2. Gemini AI로 퀴즈 생성
     questions_to_insert = []
@@ -147,15 +154,17 @@ async def generate_common_quiz(class_id: str):
         ]
 
     if questions_to_insert:
-        supabase.table("quiz_questions").insert(questions_to_insert).execute()
+        await config.supabase.table("quiz_questions").insert(questions_to_insert).execute()
+
         print(f"[QuizGen] 공통 퀴즈 {len(questions_to_insert)}문제 저장 완료")
 
     return quiz_id
 
 
+
 async def generate_personal_quiz(class_id: str, student_id: str):
     """학생 개인 질문 바탕 맞춤형 퀴즈 생성 (실제 Gemini AI 사용)"""
-    hot_pages = get_student_hot_pages(class_id, student_id, top_n=3)
+    hot_pages = await get_student_hot_pages(class_id, student_id, top_n=3)
     if not hot_pages:
         print(f"[QuizGen] 개인 퀴즈 생략: student_id={student_id} 질문 없음")
         return None
@@ -163,11 +172,12 @@ async def generate_personal_quiz(class_id: str, student_id: str):
     print(f"[QuizGen] 개인 퀴즈 생성 시작 - student_id={student_id}, pages={hot_pages}")
 
     # 해당 학생의 질문 내용도 컨텍스트로 활용
-    interactions_res = supabase.table("interactions")\
+    interactions_res = await config.supabase.table("interactions")\
         .select("page_number, question_content")\
         .eq("class_id", class_id)\
         .eq("student_id", student_id)\
         .execute()
+
 
     student_questions_summary = ""
     if interactions_res.data:
@@ -180,10 +190,12 @@ async def generate_personal_quiz(class_id: str, student_id: str):
         "quiz_type": "personal",
         "target_student_id": student_id
     }
-    quiz_res = supabase.table("quizzes").insert(quiz_data).execute()
+    quiz_res = await config.supabase.table("quizzes").insert(quiz_data).execute()
+
     if not quiz_res.data:
         return None
     quiz_id = quiz_res.data[0]["id"]
+
 
     questions_to_insert = []
     try:
@@ -244,10 +256,12 @@ async def generate_personal_quiz(class_id: str, student_id: str):
         ]
 
     if questions_to_insert:
-        supabase.table("quiz_questions").insert(questions_to_insert).execute()
+        await config.supabase.table("quiz_questions").insert(questions_to_insert).execute()
+
         print(f"[QuizGen] 개인 퀴즈 저장 완료: student_id={student_id}")
 
     return quiz_id
+
 
 
 async def generate_all_quizzes(class_id: str):
@@ -256,10 +270,12 @@ async def generate_all_quizzes(class_id: str):
     await generate_common_quiz(class_id)
 
     # 수강 학생 목록 조회
-    students_res = supabase.table("class_students").select("student_id").eq("class_id", class_id).execute()
+    students_res = await config.supabase.table("class_students").select("student_id").eq("class_id", class_id).execute()
+
     if students_res.data:
         for s in students_res.data:
             await generate_personal_quiz(class_id, s["student_id"])
+
 
     print(f"[QuizGen] 전체 퀴즈 생성 완료: class_id={class_id}")
 
