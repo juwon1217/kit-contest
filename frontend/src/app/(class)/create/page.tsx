@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AppleCard from '@/components/apple/AppleCard';
+import AppleButton from '@/components/apple/AppleButton';
 
 export default function CreateClassPage() {
   const router = useRouter();
@@ -26,13 +28,11 @@ export default function CreateClassPage() {
       const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
       const formData = new FormData();
 
-
       formData.append('title', title);
       formData.append('pdf_file', file);
       formData.append('total_pages', '24'); // MVP 임시 페이지 수 지정
       
       const res = await fetch('http://127.0.0.1:8000/api/classes', {
-
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -68,14 +68,16 @@ export default function CreateClassPage() {
   };
 
   return (
-    <div className="min-h-screen py-12 bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden p-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">새 수업 개설</h2>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-apple-gray dark:bg-apple-black px-4 font-sf-text">
+      <AppleCard theme="light" className="max-w-md w-full p-[40px] dark:bg-[#272729] dark:text-apple-text-light text-center">
+        <h2 className="text-[28px] leading-[1.14] tracking-[0.196px] font-sf-display font-medium text-apple-text-dark dark:text-white mb-8 text-center">
+          새 수업 개설
+        </h2>
         
         {!classId ? (
-          <form onSubmit={handleCreate} className="space-y-6">
+          <form onSubmit={handleCreate} className="space-y-6 text-left">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="title" className="block text-[14px] leading-[1.29] tracking-[-0.224px] text-black/80 dark:text-white/80 mb-2">
                 수업 제목
               </label>
               <input
@@ -84,13 +86,13 @@ export default function CreateClassPage() {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="w-full rounded-[11px] bg-white dark:bg-[#1d1d1f] text-apple-text-dark dark:text-white px-[14px] py-[12px] outline-none focus:ring-2 focus:ring-apple-focus-ring border border-black/5 dark:border-white/10"
                 placeholder="예: 2024 데이터베이스 1분반"
               />
             </div>
             
             <div>
-              <label htmlFor="file" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="file" className="block text-[14px] leading-[1.29] tracking-[-0.224px] text-black/80 dark:text-white/80 mb-2">
                 강의 자료 (PDF)
               </label>
               <input
@@ -99,34 +101,40 @@ export default function CreateClassPage() {
                 accept=".pdf"
                 required
                 onChange={handleFileChange}
-                className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300"
+                className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-[8px] file:border-0 file:text-[14px] file:font-sf-text file:bg-black/5 file:text-apple-text-dark hover:file:bg-black/10 dark:file:bg-white/10 dark:file:text-white dark:hover:file:bg-white/20 transition-colors"
               />
             </div>
             
-            <button
-              type="submit"
-              disabled={loading || !title || !file}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
-            >
-              {loading ? '개설 중...' : '수업 개설하기'}
-            </button>
+            <div className="pt-2">
+              <AppleButton
+                type="submit"
+                variant="primary"
+                disabled={loading || !title || !file}
+                className="w-full"
+              >
+                {loading ? '개설 중...' : '수업 개설하기'}
+              </AppleButton>
+            </div>
           </form>
         ) : (
-          <div className="text-center space-y-6">
-            <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-md">
-              <p className="text-sm text-green-700 dark:text-green-300 font-semibold mb-2">수업이 개설되었습니다! 참여 코드:</p>
-              <p className="text-4xl font-mono font-bold text-gray-900 dark:text-white tracking-widest">{classId}</p>
+          <div className="text-center space-y-8">
+            <div className="bg-white dark:bg-[#1d1d1f] p-6 rounded-[16px] border border-black/5 dark:border-white/10">
+              <p className="text-[14px] text-black/80 dark:text-white/80 font-medium mb-3">수업이 개설되었습니다! 참여 코드:</p>
+              <p className="text-[40px] font-sf-display font-bold text-apple-blue dark:text-[#2997ff] tracking-tight">{classId}</p>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">학생들에게 위 코드를 공유하여 접속하게 하세요.</p>
-            <button
-              onClick={enterDashboard}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              대시보드로 입장하기
-            </button>
+            <p className="text-[14px] leading-[1.29] tracking-[-0.224px] text-black/60 dark:text-white/60">학생들에게 위 코드를 공유하여 접속하게 하세요.</p>
+            <div className="pt-4">
+              <AppleButton
+                onClick={enterDashboard}
+                variant="primary"
+                className="w-full"
+              >
+                대시보드로 입장하기
+              </AppleButton>
+            </div>
           </div>
         )}
-      </div>
+      </AppleCard>
     </div>
   );
 }

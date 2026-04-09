@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Apple UI Design Tokens */
+  --apple-black: #000000;
+  --apple-gray: #f5f5f7;
+  --apple-text-dark: #1d1d1f;
+  --apple-text-light: #ffffff;
+  --apple-blue: #0071e3;
+  --apple-link-blue: #0066cc;
+  --apple-focus-ring: #0071e3;
+  --apple-shadow-card: 3px 5px 30px 0px rgba(0, 0, 0, 0.22);
 }
 
 @theme inline {
@@ -10,6 +20,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Apple Tailwind Classes */
+  --color-apple-black: var(--apple-black);
+  --color-apple-gray: var(--apple-gray);
+  --color-apple-text-dark: var(--apple-text-dark);
+  --color-apple-text-light: var(--apple-text-light);
+  --color-apple-blue: var(--apple-blue);
+  --color-apple-link-blue: var(--apple-link-blue);
+
+  /* Apple Typography */
+  --font-sf-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sf-text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {

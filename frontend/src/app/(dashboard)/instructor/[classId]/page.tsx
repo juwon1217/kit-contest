@@ -37,10 +37,11 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
         const heatmap = data.heatmap || [];
         const pageData = heatmap.find((h: any) => h.page === oldPage);
         const prevQCount = pageData ? pageData.questionCount : 0;
-        const text = prevQCount > 0
-          ? `이전 페이지(${oldPage}쪽)에서 ${prevQCount}건의 AI 질문이 발생했습니다.`
-          : `이전 페이지(${oldPage}쪽)에서 발생한 질문이 없습니다.`;
-        setToastMsg({ text, triggerId: Date.now() });
+        
+        if (prevQCount > 0) {
+          const text = `이전 페이지(${oldPage}쪽)에서 ${prevQCount}건의 AI 질문이 발생했습니다.`;
+          setToastMsg({ text, triggerId: Date.now() });
+        }
       }
     } catch (e) {
       console.error("Failed to fetch page statistics", e);
@@ -79,25 +80,25 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
   };
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-100 dark:bg-gray-900 relative">
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-apple-gray dark:bg-apple-black relative font-sf-text">
       <ToastNotifier message={toastMsg.text} triggerId={toastMsg.triggerId} />
 
-      {/* GNB / 강사 상단 헤더 */}
-      <header className="flex-none h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-6 shadow-sm z-10">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-          Edu-Lens AI
-          <span className="ml-3 px-2 py-0.5 text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-800">
-            Instructor Mode
+      {/* GNB / 강사 상단 헤더 - Apple Glass Effect */}
+      <header className="flex-none h-[48px] bg-black/80 backdrop-blur-[20px] backdrop-saturate-[180%] border-b border-white/10 flex items-center px-6 z-50 sticky top-0">
+        <h1 className="text-[14px] leading-[1.29] font-medium text-white flex items-center tracking-tight">
+          <span className="font-sf-display font-semibold mr-1 text-[16px]"></span> Edu-Lens AI
+          <span className="ml-3 px-[6px] py-[2px] text-[10px] leading-[1.0] font-medium bg-white/10 text-white/70 rounded-[4px] border border-white/5">
+            Instructor
           </span>
         </h1>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="ml-auto flex items-center space-x-[15px]">
           <button
             onClick={() => setShowEndConfirm(true)}
-            className="px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-md text-sm font-medium transition cursor-pointer"
+            className="text-[12px] text-[#ff3b30] hover:text-[#ff453a] hover:underline outline-none transition font-medium tracking-[-0.12px]"
           >
             수업 종료
           </button>
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-inner">
+          <div className="w-[24px] h-[24px] bg-white/20 rounded-full flex items-center justify-center text-white font-medium text-[10px]">
             I
           </div>
         </div>
@@ -115,8 +116,8 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
             />
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-gray-200 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-indigo-600 transition-colors cursor-col-resize flex items-center justify-center">
-            <div className="w-1 h-8 bg-gray-400 dark:bg-gray-500 rounded-full" />
+          <PanelResizeHandle className="w-[1px] bg-black/5 dark:bg-white/10 hover:bg-[#0071e3] transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="w-[4px] h-[32px] bg-black/10 dark:bg-white/20 rounded-full" />
           </PanelResizeHandle>
 
           <Panel defaultSize={60} minSize={40}>
@@ -128,8 +129,8 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
             />
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-gray-200 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-indigo-600 transition-colors cursor-col-resize flex items-center justify-center">
-            <div className="w-1 h-8 bg-gray-400 dark:bg-gray-500 rounded-full" />
+          <PanelResizeHandle className="w-[1px] bg-black/5 dark:bg-white/10 hover:bg-[#0071e3] transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="w-[4px] h-[32px] bg-black/10 dark:bg-white/20 rounded-full" />
           </PanelResizeHandle>
 
           <Panel defaultSize={20} minSize={15}>
@@ -140,41 +141,26 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
 
       {/* 수업 종료 확인 모달 */}
       {showEndConfirm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center mb-4">
-              <span className="text-3xl mr-3">🔴</span>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">수업을 종료하시겠습니까?</h3>
-            </div>
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-5">
-              <p className="text-amber-800 dark:text-amber-300 text-sm font-medium">⚠️ 종료 즉시 다음이 실행됩니다:</p>
-              <ul className="mt-2 text-amber-700 dark:text-amber-400 text-xs space-y-1 list-disc list-inside">
-                <li>학생들의 수업 접속이 차단됩니다</li>
-                <li>히트맵 기반 공통 퀴즈가 생성됩니다</li>
-                <li>개인별 맞춤형 퀴즈가 생성됩니다</li>
-              </ul>
-            </div>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center backdrop-blur-[10px]">
+          <div className="bg-white dark:bg-[#272729] rounded-[16px] shadow-[var(--apple-shadow-card)] p-[30px] max-w-sm w-full mx-4 text-center border border-black/5 dark:border-white/10">
+            <h3 className="text-[21px] font-sf-display font-semibold text-apple-text-dark dark:text-white mb-2 leading-[1.19]">수업을 종료하시겠습니까?</h3>
+            <p className="text-[14px] text-black/60 dark:text-white/60 mb-6 leading-[1.29]">
+              진행 중인 학생 접속이 차단되며,<br/>히트맵 기반 평가가 자동으로 시작됩니다.
+            </p>
 
             {endError && (
-              <p className="text-red-500 text-sm mb-4 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">{endError}</p>
+              <p className="text-[#ff3b30] text-[14px] mb-4 bg-[#ff3b30]/10 p-2 rounded-[8px] font-medium">{endError}</p>
             )}
 
-            <div className="flex space-x-3">
-              <button
-                onClick={() => { setShowEndConfirm(false); setEndError(''); }}
-                disabled={isEnding}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-medium disabled:opacity-50"
-              >
-                취소
-              </button>
+            <div className="flex flex-col space-y-[12px]">
               <button
                 onClick={handleEndClass}
                 disabled={isEnding}
-                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white rounded-lg transition font-medium flex items-center justify-center space-x-2"
+                className="w-full px-[15px] py-[12px] bg-[#ff3b30] hover:bg-[#ff453a] disabled:bg-[#ff3b30]/50 text-white font-medium rounded-[8px] text-[17px] transition-colors outline-none focus:ring-2 focus:ring-[#ff3b30]/50 flex items-center justify-center"
               >
                 {isEnding ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
@@ -183,6 +169,13 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
                 ) : (
                   <span>종료하기</span>
                 )}
+              </button>
+              <button
+                onClick={() => { setShowEndConfirm(false); setEndError(''); }}
+                disabled={isEnding}
+                className="w-full px-[15px] py-[12px] bg-transparent text-[#0071e3] dark:text-[#2997ff] border border-[#0071e3]/30 dark:border-[#2997ff]/30 font-medium rounded-[8px] text-[17px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors outline-none disabled:opacity-50"
+              >
+                취소
               </button>
             </div>
           </div>

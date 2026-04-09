@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 interface ToastNotifierProps {
   message: string;
   duration?: number;
-  triggerId?: number; // 토스트를 다시 띄우기 위한 식별자
+  triggerId?: number;
 }
 
 export default function ToastNotifier({ message, duration = 3000, triggerId }: ToastNotifierProps) {
@@ -24,9 +24,9 @@ export default function ToastNotifier({ message, duration = 3000, triggerId }: T
   if (!isVisible) return null;
 
   return (
-    <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in-down">
-      <div className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black font-semibold rounded-full shadow-lg flex items-center space-x-3 opacity-95">
-        <span>💡</span>
+    <div className="absolute bottom-[40px] left-1/2 transform -translate-x-1/2 z-[9999] animate-fade-in-down">
+      <div className="px-[20px] py-[10px] bg-black/80 dark:bg-white/80 backdrop-blur-[20px] text-white dark:text-black font-medium text-[14px] rounded-[100px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex items-center space-x-[8px] pointer-events-none">
+        <span className="text-[14px]">ℹ️</span>
         <span>{message}</span>
       </div>
     </div>

@@ -5,6 +5,30 @@ import config
 
 from ai_engine import get_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
+from pdf_extractor import extract_text_from_pdf_pages
+
+
+async def _get_pdf_context(class_id: str, pages: list[int]) -> str:
+    """Supabase에서 PDF를 다운로드하여 텍스트/OCR 추출"""
+    try:
+        class_res = await config.supabase.table("classes").select("pdf_url").eq("id", class_id).execute()
+        if not class_res.data:
+            return ""
+        pdf_url = class_res.data[0].get("pdf_url")
+        if not pdf_url or pdf_url == "https://example.com/fallback.pdf":
+            return ""
+            
+        if pdf_url.startswith("http"):
+            try:
+                pdf_url = pdf_url.split("pdfs/")[-1]
+            except Exception:
+                pass
+                
+        pdf_bytes = await config.supabase.storage.from_("pdfs").download(pdf_url)
+        return extract_text_from_pdf_pages(pdf_bytes, pages)
+    except Exception as e:
+        print(f"[QuizGen] PDF Context Extraction Failed: {e}")
+        return ""
 
 
 async def get_hot_pages(class_id: str, top_n: int = 5) -> list[int]:
@@ -58,11 +82,19 @@ def _parse_ai_quiz_response(raw_text: str) -> list[dict] | None:
         return None
 
 
-def _build_quiz_prompt(pages: list[int], quiz_label: str = "공통") -> str:
-    return (
+def _build_quiz_prompt(pages: list[int], quiz_label: str = "공통", pdf_context: str = "") -> str:
+    prompt = (
         f"당신은 교육용 퀴즈 출제 전문가입니다.\n"
-        f"학생들이 가장 어려워한 PDF 페이지 번호들({pages})의 핵심 개념을 바탕으로 "
-        f"사지선다형 객관식 퀴즈 3문제를 한국어로 생성하세요.\n\n"
+        f"학생들이 가장 어려워한 페이지 번호들({pages})에서 추출된 실제 수업자료 텍스트를 바탕으로 "
+        f"사지선다형 객관식 퀴즈 3문제를 생성하세요.\n\n"
+    )
+    
+    if pdf_context:
+        prompt += f"[실제 PDF 추출 내용]\n{pdf_context}\n\n"
+    else:
+        prompt += f"해당 주제와 관련된 일반적인 핵심 교과 내용을 바탕으로 문제를 생성하세요.\n\n"
+
+    prompt += (
         f"반드시 아래 JSON 배열 형식만 출력하세요. 다른 텍스트는 절대 포함하지 마세요:\n"
         f'[\n'
         f'  {{\n'
@@ -74,12 +106,17 @@ def _build_quiz_prompt(pages: list[int], quiz_label: str = "공통") -> str:
         f'  }}\n'
         f']'
     )
+    return prompt
 
 
 async def generate_common_quiz(class_id: str):
     """수업 종료 시 발동되는 공통 퀴즈 생성 로직 (실제 Gemini AI 사용)"""
     hot_pages = await get_hot_pages(class_id, top_n=5)
     print(f"[QuizGen] 공통 퀴즈 생성 시작 - class_id={class_id}, hot_pages={hot_pages}")
+
+    # PDF에서 Context 추출 (hot_pages가 부족할 경우 랜덤 페이지를 내부에서 추가함)
+    pdf_context = await _get_pdf_context(class_id, hot_pages)
+    print(f"[QuizGen] PDF Context 확보 완료 (길이: {len(pdf_context)})")
 
     # 1. 퀴즈 마스터 생성
     quiz_data = {
@@ -98,7 +135,7 @@ async def generate_common_quiz(class_id: str):
     questions_to_insert = []
     try:
         model = get_chat_model()
-        prompt = _build_quiz_prompt(hot_pages, "공통")
+        prompt = _build_quiz_prompt(hot_pages, "공통", pdf_context)
         messages = [
             SystemMessage(content="당신은 교육용 퀴즈 출제 전문가입니다. 반드시 JSON 배열만 출력하세요."),
             HumanMessage(content=prompt)
@@ -171,6 +208,9 @@ async def generate_personal_quiz(class_id: str, student_id: str):
 
     print(f"[QuizGen] 개인 퀴즈 생성 시작 - student_id={student_id}, pages={hot_pages}")
 
+    # PDF에서 Context 추출
+    pdf_context = await _get_pdf_context(class_id, hot_pages)
+    
     # 해당 학생의 질문 내용도 컨텍스트로 활용
     interactions_res = await config.supabase.table("interactions")\
         .select("page_number, question_content")\
@@ -204,6 +244,8 @@ async def generate_personal_quiz(class_id: str, student_id: str):
             f"당신은 교육용 퀴즈 출제 전문가입니다.\n"
             f"한 학생이 수업 중 다음 페이지들({hot_pages})에서 주로 질문했습니다.\n"
         )
+        if pdf_context:
+            prompt += f"\n[실제 PDF 추출 내용]\n{pdf_context}\n"
         if student_questions_summary:
             prompt += f"\n학생의 주요 질문 내용:\n{student_questions_summary}\n"
         prompt += (

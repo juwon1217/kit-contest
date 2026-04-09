@@ -2,6 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import AppleCard from '@/components/apple/AppleCard';
+import AppleButton from '@/components/apple/AppleButton';
 
 interface QuizOption {
   id: string;
@@ -49,7 +51,6 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
         const res = await fetch(`http://127.0.0.1:8000/api/quiz/${classId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
 
         if (res.ok) {
           const data = await res.json();
@@ -121,7 +122,7 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
         const data = await res.json();
         setFeedback({
           isCorrect: data.is_correct,
-          message: data.is_correct ? '정답입니다!' : '오답입니다.',
+          message: data.is_correct ? '정답입니다' : '오답입니다',
           explanation: data.summary || data.step_by_step_explanation || "해설이 제공되지 않았습니다."
         });
         setResults(prev => [...prev, { questionId: currentQ.id, isCorrect: data.is_correct }]);
@@ -149,14 +150,10 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-indigo-200 dark:border-indigo-900 rounded-full animate-spin border-t-indigo-600"></div>
-            <span className="absolute inset-0 flex items-center justify-center text-2xl">📝</span>
-          </div>
-          <p className="text-indigo-700 dark:text-indigo-300 font-semibold text-lg">퀴즈를 불러오는 중...</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">AI가 맞춤형 퀴즈를 준비하고 있습니다.</p>
+      <div className="min-h-screen flex items-center justify-center bg-apple-gray dark:bg-apple-black font-sf-text">
+        <div className="flex flex-col items-center space-y-[20px]">
+          <div className="w-[40px] h-[40px] border-[3px] border-black/10 dark:border-white/10 rounded-full animate-spin border-t-[#0071e3]"></div>
+          <p className="text-[14px] leading-[1.29] font-medium text-black/80 dark:text-white/80">Loading Quiz...</p>
         </div>
       </div>
     );
@@ -164,20 +161,20 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
 
   if (!quizReady || questions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-10 max-w-md text-center">
-          <div className="text-5xl mb-4">⏳</div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">퀴즈 준비 중입니다</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
-            AI가 퀴즈를 생성하고 있습니다. 잠시 후 다시 시도해 주세요.
+      <div className="flex min-h-screen items-center justify-center bg-apple-gray dark:bg-apple-black font-sf-text px-4">
+        <AppleCard theme="light" className="max-w-md w-full p-[40px] text-center dark:bg-[#272729]">
+          <h2 className="text-[28px] font-sf-display font-medium text-apple-text-dark dark:text-white mb-2 leading-[1.14]">퀴즈 준비 중</h2>
+          <p className="text-[14px] text-black/60 dark:text-white/60 mb-8 leading-[1.29]">
+            AI가 맞춤형 퀴즈를 생성하고 있습니다.<br/>잠시 후 페이지를 새로고침 해 주세요.
           </p>
-          <button
+          <AppleButton
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition"
+            variant="primary"
+            className="w-full"
           >
             새로고침
-          </button>
-        </div>
+          </AppleButton>
+        </AppleCard>
       </div>
     );
   }
@@ -186,58 +183,59 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
   if (quizDone) {
     const correctCount = results.filter(r => r.isCorrect).length;
     const accuracy = Math.round((correctCount / questions.length) * 100);
-    const grade = accuracy >= 90 ? '🏆 최우수' : accuracy >= 70 ? '🥈 우수' : accuracy >= 50 ? '🥉 보통' : '📚 복습 필요';
+    const grade = accuracy >= 90 ? 'High Distinction' : accuracy >= 70 ? 'Distinction' : accuracy >= 50 ? 'Pass' : 'Review Required';
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center py-10 px-4">
-        <div className="max-w-lg w-full">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-10 text-center border border-gray-100 dark:border-gray-700">
-            <div className="text-6xl mb-4">{accuracy >= 70 ? '🎉' : '📚'}</div>
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">퀴즈 완료!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mb-8">수고하셨습니다. 최종 결과를 확인해보세요.</p>
+      <div className="flex min-h-screen items-center justify-center bg-apple-gray dark:bg-apple-black font-sf-text px-4">
+        <AppleCard theme="light" className="max-w-lg w-full p-[40px] text-center dark:bg-[#272729] dark:text-apple-text-light">
+          <h1 className="text-[28px] font-sf-display font-semibold text-apple-text-dark dark:text-white mb-2 tracking-[0.196px] leading-[1.14]">Quiz Complete</h1>
+          <p className="text-[14px] text-black/60 dark:text-white/60 mb-8 leading-[1.29]">수고하셨습니다. 최종 결과를 확인하세요.</p>
 
-            {/* 원형 점수 표시 */}
-            <div className="relative inline-flex items-center justify-center mb-6">
-              <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" strokeWidth="10" />
-                <circle
-                  cx="60" cy="60" r="54" fill="none"
-                  stroke={accuracy >= 70 ? '#6366f1' : accuracy >= 50 ? '#f59e0b' : '#ef4444'}
-                  strokeWidth="10"
-                  strokeDasharray={`${(accuracy / 100) * 339.3} 339.3`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute text-center">
-                <span className="text-4xl font-black text-gray-900 dark:text-white">{accuracy}%</span>
-              </div>
+          {/* 원형 점수 표시 */}
+          <div className="relative inline-flex items-center justify-center mb-6">
+            <svg className="w-[120px] h-[120px] -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="8" />
+              <circle
+                cx="60" cy="60" r="54" fill="none"
+                stroke={accuracy >= 70 ? '#34c759' : accuracy >= 50 ? '#ff9f0a' : '#ff3b30'}
+                strokeWidth="8"
+                strokeDasharray={`${(accuracy / 100) * 339.3} 339.3`}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+            <div className="absolute text-center flex flex-col items-center">
+              <span className="text-[32px] font-sf-display font-semibold text-apple-text-dark dark:text-white tracking-tight">{accuracy}%</span>
             </div>
-
-            <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mb-6">{grade}</div>
-
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl">
-                <div className="text-2xl font-bold text-indigo-600">{questions.length}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">전체 문제</div>
-              </div>
-              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
-                <div className="text-2xl font-bold text-green-600">{correctCount}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">정답</div>
-              </div>
-              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl">
-                <div className="text-2xl font-bold text-red-500">{questions.length - correctCount}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">오답</div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => router.push(`/report/${classId}`)}
-              className="w-full px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-105 text-lg"
-            >
-              📊 최종 학습 리포트 확인하기
-            </button>
           </div>
-        </div>
+
+          <div className="text-[17px] font-medium text-[#0071e3] dark:text-[#2997ff] mb-8">{grade}</div>
+
+          <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="bg-white dark:bg-[#1d1d1f] p-[15px] rounded-[11px] border border-black/5 dark:border-white/10">
+              <div className="text-[21px] font-semibold text-apple-text-dark dark:text-white leading-[1.19]">{questions.length}</div>
+              <div className="text-[12px] text-black/60 dark:text-white/60 mt-1 uppercase tracking-wider font-semibold">Total</div>
+            </div>
+            <div className="bg-white dark:bg-[#1d1d1f] p-[15px] rounded-[11px] border border-[#34c759]/20">
+              <div className="text-[21px] font-semibold text-[#34c759] leading-[1.19]">{correctCount}</div>
+              <div className="text-[12px] text-[#34c759]/80 mt-1 uppercase tracking-wider font-semibold">Correct</div>
+            </div>
+            <div className="bg-white dark:bg-[#1d1d1f] p-[15px] rounded-[11px] border border-[#ff3b30]/20">
+              <div className="text-[21px] font-semibold text-[#ff3b30] leading-[1.19]">{questions.length - correctCount}</div>
+              <div className="text-[12px] text-[#ff3b30]/80 mt-1 uppercase tracking-wider font-semibold">Errors</div>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <AppleButton
+              onClick={() => router.push(`/report/${classId}`)}
+              variant="primary"
+              className="w-full"
+            >
+              학습 분석 리포트 확인
+            </AppleButton>
+          </div>
+        </AppleCard>
       </div>
     );
   }
@@ -248,67 +246,69 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
   const isCommon = currentQ.quiz_type === 'common';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-10 px-4">
+    <div className="min-h-screen bg-apple-gray dark:bg-apple-black font-sf-text py-[40px] px-4">
       <div className="max-w-2xl mx-auto">
         
-        {/* 헤더 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {currentIdx + 1} / {questions.length}
+        {/* 헤더 및 진행도 */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[14px] font-medium text-black/48 dark:text-white/48">
+              {currentIdx + 1} of {questions.length}
             </span>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+            <span className={`text-[10px] font-semibold px-[8px] py-[4px] rounded-[4px] border uppercase tracking-wider ${
               isCommon
-                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-                : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                ? 'bg-[#0071e3]/10 border-[#0071e3]/20 text-[#0071e3] dark:bg-[#2997ff]/20 dark:border-[#2997ff]/30 dark:text-[#2997ff]'
+                : 'bg-[#ff9f0a]/10 border-[#ff9f0a]/20 text-[#ff9f0a] dark:bg-[#ff9f0a]/20 dark:border-[#ff9f0a]/30 dark:text-[#ff9f0a]'
             }`}>
-              {isCommon ? '📚 공통 문제' : '⭐ 개인 맞춤 문제'}
+              {isCommon ? 'Common' : 'Individual'}
             </span>
           </div>
           {/* 진행도 바 */}
-          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="w-full h-[4px] bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+              className="h-full bg-[#0071e3] dark:bg-[#2997ff] rounded-full transition-all duration-300 ease-in-out"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
         {/* 문제 카드 */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-          {/* 문제 */}
-          <div className="px-8 py-6 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-900/20 dark:to-purple-900/20 border-b border-gray-100 dark:border-gray-700">
+        <AppleCard theme="light" className="overflow-hidden bg-white dark:bg-[#272729] dark:text-apple-text-light pb-[30px]">
+          {/* 영역별 Padding을 내부에서 조정 */}
+          <div className="p-[30px] border-b border-black/5 dark:border-white/10 bg-[#f5f5f7] dark:bg-[#1d1d1f]">
             {currentQ.source_page && (
-              <span className="text-xs text-gray-400 dark:text-gray-500 mb-2 block">
-                📄 {currentQ.source_page}페이지 기반
+              <span className="text-[12px] text-[#0071e3] dark:text-[#2997ff] mb-2 block font-medium">
+                Page {currentQ.source_page} Reference
               </span>
             )}
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-relaxed">
-              Q{currentIdx + 1}. {currentQ.question_text.replace(/^\[공통\]\s*|\[개인\]\s*/g, '')}
+            <h2 className="text-[21px] font-sf-display font-semibold text-apple-text-dark dark:text-white leading-[1.19] tracking-[0.231px]">
+               {currentQ.question_text.replace(/^\[공통\]\s*|\[개인\]\s*/g, '')}
             </h2>
           </div>
 
-          {/* 선택지 */}
-          <div className="px-8 py-6 space-y-3">
+          <div className="p-[30px] space-y-[12px]">
             {currentQ.options.map((opt, i) => {
               const isSelected = selectedOption === opt.id;
               const answered = !!feedback;
 
-              let optClass = 'border-gray-200 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10';
-              let textClass = 'text-gray-700 dark:text-gray-200';
-              const numberClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
+              let optClass = 'border-black/5 dark:border-white/10 hover:border-[#0071e3]/30 dark:hover:border-[#2997ff]/30 bg-white dark:bg-[#272729]';
+              let textClass = 'text-apple-text-dark dark:text-white';
+              let letterClass = 'bg-[#f5f5f7] dark:bg-[#1d1d1f] text-black/60 dark:text-white/60 border border-black/5 dark:border-white/10';
 
               if (isSelected && !answered) {
-                optClass = 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30';
-                textClass = 'text-indigo-700 dark:text-indigo-300 font-semibold';
+                optClass = 'border-[#0071e3] bg-[#0071e3]/5 dark:bg-[#2997ff]/10';
+                textClass = 'text-[#0071e3] font-semibold dark:text-[#2997ff]';
+                letterClass = 'bg-[#0071e3] text-white border-[#0071e3]';
               }
               if (answered && isSelected) {
                 if (feedback.isCorrect) {
-                  optClass = 'border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-400';
-                  textClass = 'text-green-700 dark:text-green-300 font-semibold';
+                  optClass = 'border-[#34c759] bg-[#34c759]/5 dark:bg-[#34c759]/10';
+                  textClass = 'text-[#34c759] font-semibold flex-1';
+                  letterClass = 'bg-[#34c759] text-white border-[#34c759]';
                 } else {
-                  optClass = 'border-red-500 bg-red-50 dark:bg-red-900/30 ring-2 ring-red-400';
-                  textClass = 'text-red-700 dark:text-red-300 font-semibold';
+                  optClass = 'border-[#ff3b30] bg-[#ff3b30]/5 dark:bg-[#ff3b30]/10';
+                  textClass = 'text-[#ff3b30] font-semibold flex-1';
+                  letterClass = 'bg-[#ff3b30] text-white border-[#ff3b30]';
                 }
               }
 
@@ -317,15 +317,15 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
                   key={opt.id}
                   onClick={() => !answered && setSelectedOption(opt.id)}
                   disabled={answered}
-                  className={`w-full text-left border-2 rounded-xl p-4 flex items-center space-x-4 transition-all duration-200 ${optClass} ${answered ? 'cursor-default' : 'cursor-pointer'}`}
+                  className={`w-full text-left border rounded-[11px] p-[15px] flex items-center space-x-[15px] transition-all duration-200 outline-none ${optClass} ${answered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${numberClass}`}>
-                    {['①','②','③','④'][i]}
+                  <span className={`w-[24px] h-[24px] rounded-full flex items-center justify-center text-[12px] font-sf-display font-semibold flex-shrink-0 transition-colors ${letterClass}`}>
+                    {['A','B','C','D'][i] || i+1}
                   </span>
-                  <span className={`text-sm ${textClass}`}>{opt.text}</span>
+                  <span className={`text-[14px] leading-[1.29] tracking-[-0.224px] ${textClass}`}>{opt.text}</span>
                   {answered && isSelected && (
-                    <span className="ml-auto text-xl flex-shrink-0">
-                      {feedback.isCorrect ? '✅' : '❌'}
+                    <span className="ml-auto text-[14px] font-medium flex-shrink-0">
+                      {feedback.isCorrect ? <span className="text-[#34c759]">Correct</span> : <span className="text-[#ff3b30]">Incorrect</span>}
                     </span>
                   )}
                 </button>
@@ -335,67 +335,68 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
 
           {/* 해설 영역 */}
           {feedback && (
-            <div className={`mx-8 mb-6 p-5 rounded-xl border-2 ${
+            <div className={`mx-[30px] mb-[30px] p-[20px] rounded-[11px] border ${
               feedback.isCorrect
-                ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                ? 'bg-[#34c759]/5 border-[#34c759]/20'
+                : 'bg-[#ff3b30]/5 border-[#ff3b30]/20'
             }`}>
-              <div className="flex items-center mb-2">
-                <span className="text-xl mr-2">{feedback.isCorrect ? '✅' : '❌'}</span>
-                <span className={`font-bold text-base ${feedback.isCorrect ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}`}>
-                  {feedback.message}
+              <div className="flex items-center mb-[10px]">
+                <span className={`text-[14px] font-semibold ${feedback.isCorrect ? 'text-[#34c759]' : 'text-[#ff3b30]'}`}>
+                  {feedback.isCorrect ? 'Correct Answer' : 'Incorrect Answer'}
                 </span>
               </div>
-              <p className={`text-sm leading-relaxed ${feedback.isCorrect ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+              <p className={`text-[14px] leading-[1.29] ${feedback.isCorrect ? 'text-black/80 dark:text-white/80' : 'text-black/80 dark:text-white/80'}`}>
                 {feedback.explanation}
               </p>
             </div>
           )}
 
           {/* 제출 / 다음 버튼 */}
-          <div className="px-8 pb-8">
+          <div className="px-[30px]">
             {!feedback ? (
-              <button
+              <AppleButton
                 onClick={handleSubmit}
+                variant="primary"
                 disabled={!selectedOption || submitting}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2"
+                className="w-full flex items-center justify-center space-x-[8px]"
               >
                 {submitting ? (
                   <>
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
-                    <span>채점 중...</span>
+                    <span>처리 중...</span>
                   </>
                 ) : (
-                  <span>✔️ 정답 확인하기</span>
+                  <span>제출하기</span>
                 )}
-              </button>
+              </AppleButton>
             ) : (
-              <button
+              <AppleButton
                 onClick={handleNext}
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl shadow-md transition transform hover:scale-105"
+                variant="dark"
+                className="w-full !bg-black hover:!bg-black/80 dark:!bg-white dark:!text-black text-white"
               >
-                {currentIdx < questions.length - 1 ? '다음 문제 →' : '📊 결과 보기'}
-              </button>
+                {currentIdx < questions.length - 1 ? '다음 문제' : '결과 보기'}
+              </AppleButton>
             )}
           </div>
-        </div>
+        </AppleCard>
 
         {/* 하단 진행 점 표시 */}
-        <div className="flex justify-center space-x-2 mt-6">
+        <div className="flex justify-center space-x-[6px] mt-[30px]">
           {questions.map((_, i) => (
             <div
               key={i}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${
+              className={`w-[6px] h-[6px] rounded-full transition-all ${
                 i < results.length
                   ? results[i].isCorrect
-                    ? 'bg-green-500'
-                    : 'bg-red-400'
+                    ? 'bg-[#34c759]'
+                    : 'bg-[#ff3b30]'
                   : i === currentIdx
-                    ? 'bg-indigo-600 w-6'
-                    : 'bg-gray-300 dark:bg-gray-600'
+                    ? 'bg-[#0071e3] w-[18px]'
+                    : 'bg-black/10 dark:bg-white/20'
               }`}
             />
           ))}

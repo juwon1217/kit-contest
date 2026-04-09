@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AppleCard from '@/components/apple/AppleCard';
+import AppleButton from '@/components/apple/AppleButton';
 
 export default function JoinClassPage() {
   const router = useRouter();
@@ -23,7 +25,6 @@ export default function JoinClassPage() {
       const token = sessionStorage.getItem('auth_token') || 'dev_student';
 
       const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/join`, {
-
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -53,11 +54,13 @@ export default function JoinClassPage() {
   };
 
   return (
-    <div className="min-h-screen py-12 bg-gray-50 dark:bg-gray-900 px-4 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">수업 참여</h2>
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-          강사님이 공유해주신 6자리 코드를 입력해주세요.
+    <div className="flex min-h-screen items-center justify-center bg-apple-gray dark:bg-apple-black px-4 font-sf-text">
+      <AppleCard theme="light" className="max-w-md w-full p-[40px] text-center dark:bg-[#272729] dark:text-apple-text-light">
+        <h2 className="text-[28px] leading-[1.14] tracking-[0.196px] font-sf-display font-medium text-apple-text-dark dark:text-white mb-2">
+          수업 참여
+        </h2>
+        <p className="text-[14px] leading-[1.29] tracking-[-0.224px] text-black/60 dark:text-white/60 mb-8">
+          공유받은 6자리 코드를 입력해주세요.
         </p>
         
         <form onSubmit={handleJoin} className="space-y-6">
@@ -74,26 +77,29 @@ export default function JoinClassPage() {
                 setClassId(e.target.value.toUpperCase());
                 setError('');
               }}
-              className="block w-full text-center text-4xl font-mono tracking-[0.5em] py-4 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white uppercase transition-colors"
+              className="w-full text-center text-[40px] font-mono tracking-[0.3em] py-[15px] bg-white dark:bg-[#1d1d1f] text-apple-text-dark dark:text-white rounded-[11px] outline-none focus:ring-2 focus:ring-apple-focus-ring border border-black/5 dark:border-white/10 uppercase transition-colors"
               placeholder="A1B2C3"
             />
           </div>
           
           {error && (
-            <p className="text-red-600 dark:text-red-400 text-sm font-medium text-center bg-red-50 dark:bg-red-900/20 py-2 rounded">
+            <p className="text-[#ff3b30] text-[14px] font-medium text-center bg-[#ff3b30]/10 py-2 rounded-[8px]">
               {error}
             </p>
           )}
           
-          <button
-            type="submit"
-            disabled={loading || classId.length < 6}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors"
-          >
-            {loading ? '참여 중...' : '입장하기'}
-          </button>
+          <div className="pt-2">
+            <AppleButton
+              type="submit"
+              variant="primary"
+              disabled={loading || classId.length < 6}
+              className="w-full"
+            >
+              {loading ? '참여 중...' : '입장하기'}
+            </AppleButton>
+          </div>
         </form>
-      </div>
+      </AppleCard>
     </div>
   );
 }
