@@ -20,7 +20,7 @@ class ChatManager:
         return "dummy_session_id"
 
     async def add_message(self, session_id: str, role: str, content: str):
-        if config.supabase is None or session_id == "dummy_session_id":
+        if config.supabase is None or "dummy" in session_id:
             return
             
         new_message = {
@@ -31,7 +31,7 @@ class ChatManager:
         await config.supabase.table("chat_messages").insert(new_message).execute()
 
     async def get_history(self, session_id: str) -> List[Dict]:
-        if config.supabase is None or session_id == "dummy_session_id":
+        if config.supabase is None or "dummy" in session_id:
             return []
             
         res = await config.supabase.table("chat_messages").select("*").eq("session_id", session_id).order("created_at").execute()
