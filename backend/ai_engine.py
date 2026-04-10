@@ -155,13 +155,19 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     # 1. 세션이 가짜인 경우 진짜 세션 생성 시도
     if "dummy" in session_id and req.class_id:
         try:
-            class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+            # 방어 코드: 양옆 빈칸 파싱 오류 대비
+            clean_class_id = req.class_id.strip()
+            print(f"[DEBUG] Attempting to auto-create session for class: '{clean_class_id}'")
+            class_res = await config.supabase.table("classes").select("id").eq("class_id", clean_class_id).execute()
             if class_res.data:
                 internal_class_id = class_res.data[0]["id"]
-                # 즉석 세션 생성 (첫 드래그 대신 채팅으로 시작한 경우)
+                # 즉석 세션 생성
                 session_id = await chat_manager.create_session(
                     internal_class_id, user["id"], "chat_direct", req.message[:50]
                 )
+                print(f"[DEBUG] Success auto-creating session: {session_id}")
+            else:
+                print(f"[DEBUG] No class found for class_id: '{clean_class_id}'")
         except Exception as e:
             print(f"Session Auto-Creation Error: {e}")
 
