@@ -152,29 +152,29 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     session_id = req.session_id
     internal_class_id = "unknown_class"
     
-    # 1. 세션이 가짜인 경우 진짜 세션 생성 시도
-    if "dummy" in session_id and req.class_id:
+    # 1. 클래스 정보(UUID)를 최우선으로 확보
+    if req.class_id:
         try:
-            # 방어 코드: 양옆 빈칸 파싱 오류 대비
             clean_class_id = req.class_id.strip()
-            print(f"[DEBUG] Attempting to auto-create session for class: '{clean_class_id}'")
             class_res = await config.supabase.table("classes").select("id").eq("class_id", clean_class_id).execute()
             if class_res.data:
                 internal_class_id = class_res.data[0]["id"]
-                # 즉석 세션 생성
-                session_id = await chat_manager.create_session(
-                    internal_class_id, user["id"], "chat_direct", req.message[:50]
-                )
-                print(f"[DEBUG] Success auto-creating session: {session_id}")
-            else:
-                print(f"[DEBUG] No class found for class_id: '{clean_class_id}'")
         except Exception as e:
-            print(f"Session Auto-Creation Error: {e}")
+            print(f"[ERROR] Class lookup failed: {e}")
 
-    # 2. 히스토리 로드
+    # 2. 세션이 가짜이거나 없을 때 진짜 세션 생성
+    if ("dummy" in session_id or not session_id or session_id == "null") and internal_class_id != "unknown_class":
+        try:
+            session_id = await chat_manager.create_session(
+                internal_class_id, user["id"], "chat_direct", req.message[:50]
+            )
+            print(f"[DEBUG] Auto-created new session for chat: {session_id}")
+        except Exception as e:
+            print(f"[ERROR] Session creation failed: {e}")
+
+    # 3. 히스토리 로드
     history = await chat_manager.get_history(session_id)
     
-    # 첫 질문인 경우 인사를 생략하고 바로 답변하도록 시스템 프롬프트 조정
     if not history:
         system_prompt = "당신은 친절한 AI 조교입니다. 학생의 질문에 반드시 '한국어'로 핵심만 쉽고 짧게 요약해서 답변해 주세요. 별도의 인사말 없이 바로 본론을 설명해 주세요."
     else:
@@ -189,7 +189,7 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
             
     messages.append(HumanMessage(content=req.message))
 
-    # 3. AI 호출
+    # 4. AI 호출
     try:
         model = get_chat_model()
         response = await model.ainvoke(messages)
@@ -202,28 +202,20 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
             ai_reply = str(ai_reply)
     except Exception as e:
         print(f"AI Chat Error: {e}")
-        ai_reply = "채팅 응답에 실패했습니다. API 키를 확인해주세요."
+        ai_reply = "채팅 응답에 실패했습니다. API 설정을 확인해 주세요."
 
-    # 4. 메시지 및 상호작용 기록
-    # 4. 메시지 및 상호작용 기록
+    # 5. 메시지 및 상호작용 기록
     try:
         if "dummy" not in session_id:
             await chat_manager.add_message(session_id, "user", req.message)
             await chat_manager.add_message(session_id, "assistant", ai_reply)
 
-        if internal_class_id == "unknown_class":
-            if "dummy" not in session_id:
-                session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", session_id).execute()
-                internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
-            elif req.class_id:
-                # 프론트가 진짜로 class_id를 보냈지만 session_id가 계속 dummy라면 여기서 억지로라도 찾습니다.
-                class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id.strip()).execute()
-                internal_class_id = class_res.data[0]["id"] if class_res.data else "unknown_class"
+        if internal_class_id == "unknown_class" and "dummy" not in session_id:
+            session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", session_id).execute()
+            if session_data.data:
+                internal_class_id = session_data.data[0]["class_id"]
 
-        # 위 노력에도 불구하고 여전히 클래스를 모르면 기록 포기
-        if internal_class_id == "unknown_class":
-            print(f"[DEBUG] Skipping interaction record because class is unknown for msg: {req.message}")
-        else:
+        if internal_class_id != "unknown_class":
             interaction = InteractionCreate(
                 class_id=internal_class_id,
                 student_id=user["id"],
@@ -233,7 +225,9 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
                 ai_response=ai_reply
             )
             await interaction_recorder.record(interaction)
-            print(f"[DEBUG] Successfully recorded interaction for class {internal_class_id}")
+            print(f"[DEBUG] Recorded interaction for class {internal_class_id}")
+        else:
+            print(f"[DEBUG] Skipping interaction record because class is unknown")
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
     
