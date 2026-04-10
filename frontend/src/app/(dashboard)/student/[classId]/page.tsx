@@ -70,7 +70,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
         reqBody = { class_id: classId, page: payload.page, image_base64: payload.image64, pdf_context: "" };
       } else {
         endpoint = '/api/ai/chat';
-        reqBody = { session_id: sessionId || "dummy_session", message: payload.message, page: payload.page };
+        reqBody = { session_id: sessionId || "dummy_session", message: payload.message, page: payload.page, class_id: classId };
       }
 
 
@@ -86,7 +86,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
       if (!res.ok) throw new Error("API FAILED");
 
       const data = await res.json();
-      if (data.session_id && action !== 'chat') setSessionId(data.session_id);
+      if (data.session_id) setSessionId(data.session_id);
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),

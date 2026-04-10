@@ -36,6 +36,7 @@ class ChatRequest(BaseModel):
     session_id: str
     message: str
     page: int
+    class_id: Optional[str] = None
 
 
 @router.post("/explain")
@@ -147,10 +148,33 @@ async def explain_image(req: ExplainImageRequest, user: dict = Depends(get_curre
 
 @router.post("/chat")
 async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
-    # 1. 히스토리 로드
-    history = await chat_manager.get_history(req.session_id)
+    import config
+    session_id = req.session_id
+    internal_class_id = "unknown_class"
     
-    messages = [SystemMessage(content="당신은 친절한 AI 조교입니다. 앞선 대화 문맥을 파악하여 학생의 추가 질문에 반드시 '한국어'로 짧고 쉽게 답변해 주세요.")]
+    # 1. 세션이 가짜인 경우 진짜 세션 생성 시도
+    if "dummy" in session_id and req.class_id:
+        try:
+            class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id).execute()
+            if class_res.data:
+                internal_class_id = class_res.data[0]["id"]
+                # 즉석 세션 생성 (첫 드래그 대신 채팅으로 시작한 경우)
+                session_id = await chat_manager.create_session(
+                    internal_class_id, user["id"], "chat_direct", req.message[:50]
+                )
+        except Exception as e:
+            print(f"Session Auto-Creation Error: {e}")
+
+    # 2. 히스토리 로드
+    history = await chat_manager.get_history(session_id)
+    
+    # 첫 질문인 경우 인사를 생략하고 바로 답변하도록 시스템 프롬프트 조정
+    if not history:
+        system_prompt = "당신은 친절한 AI 조교입니다. 학생의 질문에 반드시 '한국어'로 핵심만 쉽고 짧게 요약해서 답변해 주세요. 별도의 인사말 없이 바로 본론을 설명해 주세요."
+    else:
+        system_prompt = "당신은 친절한 AI 조교입니다. 앞선 대화 문맥을 파악하여 학생의 추가 질문에 반드시 '한국어'로 짧고 쉽게 답변해 주세요."
+
+    messages = [SystemMessage(content=system_prompt)]
     for msg in history:
         if msg["role"] == "user":
             messages.append(HumanMessage(content=msg["content"]))
@@ -159,7 +183,7 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
             
     messages.append(HumanMessage(content=req.message))
 
-    # 2. AI 호출
+    # 3. AI 호출
     try:
         model = get_chat_model()
         response = await model.ainvoke(messages)
@@ -174,21 +198,20 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         print(f"AI Chat Error: {e}")
         ai_reply = "채팅 응답에 실패했습니다. API 키를 확인해주세요."
 
-    # 3, 4. 메시지 및 상호작용 기록
+    # 4. 메시지 및 상호작용 기록
     try:
-        await chat_manager.add_message(req.session_id, "user", req.message)
-        await chat_manager.add_message(req.session_id, "assistant", ai_reply)
+        await chat_manager.add_message(session_id, "user", req.message)
+        await chat_manager.add_message(session_id, "assistant", ai_reply)
 
-        import config
-        session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", req.session_id).execute()
-
-        internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
+        if internal_class_id == "unknown_class":
+            session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", session_id).execute()
+            internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
 
         interaction = InteractionCreate(
             class_id=internal_class_id,
             student_id=user["id"],
-            page_number=req.page, # 전달받은 실제 페이지 번호 기록
-            interaction_type="follow_up",
+            page_number=req.page,
+            interaction_type="follow_up" if history else "chat_direct",
             question_content=req.message,
             ai_response=ai_reply
         )
@@ -198,5 +221,5 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
     
-    return {"reply": ai_reply}
+    return {"reply": ai_reply, "session_id": session_id}
 
