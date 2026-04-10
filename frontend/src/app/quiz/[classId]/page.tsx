@@ -376,7 +376,7 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
               <AppleButton
                 onClick={handleNext}
                 variant="dark"
-                className="w-full !bg-black hover:!bg-black/80 dark:!bg-white dark:!text-black text-white"
+                className="w-full !bg-black dark:!bg-white dark:!text-black text-white hover:scale-[0.98] active:scale-[0.96] transition-transform duration-200"
               >
                 {currentIdx < questions.length - 1 ? '다음 문제' : '결과 보기'}
               </AppleButton>
