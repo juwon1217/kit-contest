@@ -18,7 +18,7 @@ api_key = os.getenv("GOOGLE_API_KEY", "YOUR_GEMINI_API_KEY_HERE")
 def get_chat_model():
     # 환경 변수에 API 키가 설정되어 있지 않다면 더미 모델 반환 등의 처리 가능하지만
     # 일단 객체 생성 시도
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", google_api_key=api_key, max_retries=3)
+    return ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", google_api_key=api_key, max_retries=3, convert_system_message_to_human=True)
 
 class ExplainTextRequest(BaseModel):
     class_id: str
