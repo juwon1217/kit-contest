@@ -23,6 +23,37 @@ export default function PDFViewer({ classId, role, onTextSelect, onAreaCapture, 
   const [totalPages, setTotalPages] = useState(0);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [scale, setScale] = useState(1.2);
+  const [isEditingScale, setIsEditingScale] = useState(false);
+  const [tempScale, setTempScale] = useState('');
+
+  const handleScaleClick = () => {
+    setTempScale(Math.round(scale * 100).toString());
+    setIsEditingScale(true);
+  };
+
+  const handleScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 숫자만 입력 가능하도록 제한
+    const val = e.target.value.replace(/[^0-9]/g, '');
+    setTempScale(val);
+  };
+
+  const handleScaleSubmit = () => {
+    const val = parseInt(tempScale);
+    if (!isNaN(val)) {
+      // 최소 10% ~ 최대 500% 제한
+      const clamped = Math.min(5, Math.max(0.1, val / 100));
+      setScale(clamped);
+    }
+    setIsEditingScale(false);
+  };
+
+  const handleScaleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleScaleSubmit();
+    } else if (e.key === 'Escape') {
+      setIsEditingScale(false);
+    }
+  };
 
   // 캡처 모드 상태
   const [isCapturing, setIsCapturing] = useState(false);
@@ -199,9 +230,30 @@ export default function PDFViewer({ classId, role, onTextSelect, onAreaCapture, 
           <button onClick={handleNextPage} disabled={currentPage >= totalPages || isCapturing} className="px-[12px] py-[4px] bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-black/80 dark:text-white/80 rounded-[8px] disabled:opacity-50 text-[12px] font-medium transition">다음</button>
           {/* 줌 */}
           <div className="flex items-center space-x-[4px] ml-[10px] border-l pl-[10px] border-black/10 dark:border-white/10">
-            <button onClick={() => setScale(s => Math.max(0.5, s - 0.2))} disabled={isCapturing} className="w-[24px] h-[24px] flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-[8px] text-[12px] font-medium disabled:opacity-50 transition">−</button>
-            <span className="text-[10px] text-black/50 dark:text-white/50 w-[40px] text-center font-sf-display">{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale(s => Math.min(3, s + 0.2))} disabled={isCapturing} className="w-[24px] h-[24px] flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-[8px] text-[12px] font-medium disabled:opacity-50 transition">+</button>
+            <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} disabled={isCapturing} className="w-[24px] h-[24px] flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-[8px] text-[12px] font-medium disabled:opacity-50 transition">−</button>
+            {isEditingScale ? (
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  className="text-[10px] text-black/80 dark:text-white/80 w-[35px] text-center bg-black/5 dark:bg-white/10 rounded-[4px] border border-[#0071e3]/30 outline-none focus:border-[#0071e3] transition-colors"
+                  value={tempScale}
+                  onChange={handleScaleChange}
+                  onBlur={handleScaleSubmit}
+                  onKeyDown={handleScaleKeyDown}
+                  autoFocus
+                />
+                <span className="text-[10px] text-black/40 dark:text-white/40 ml-0.5">%</span>
+              </div>
+            ) : (
+              <span 
+                className="text-[10px] text-black/50 dark:text-white/50 w-[40px] text-center font-sf-display cursor-pointer hover:text-[#0071e3] transition-colors"
+                onClick={handleScaleClick}
+                title="클릭하여 직접 입력"
+              >
+                {Math.round(scale * 100)}%
+              </span>
+            )}
+            <button onClick={() => setScale(s => Math.min(5, s + 0.1))} disabled={isCapturing} className="w-[24px] h-[24px] flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-[8px] text-[12px] font-medium disabled:opacity-50 transition">+</button>
           </div>
         </div>
         <div className="flex space-x-2">

@@ -199,7 +199,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
       {/* 2분할 레이아웃 */}
       <div className="flex-1 overflow-hidden">
         <PanelGroup direction="horizontal">
-          <Panel defaultSize={80} minSize={50}>
+          <Panel defaultSize={66.7} minSize={50}>
             <PDFViewer
               classId={classId}
               role="student"
@@ -213,7 +213,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
             <div className="w-[4px] h-[32px] bg-black/10 dark:bg-white/20 rounded-full" />
           </PanelResizeHandle>
 
-          <Panel defaultSize={20} minSize={15}>
+          <Panel defaultSize={33.3} minSize={15}>
             <AISidebar
               classId={classId}
               messages={messages}
