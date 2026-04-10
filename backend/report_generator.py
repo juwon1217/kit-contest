@@ -1,6 +1,7 @@
 import config
 import json
 import re
+from datetime import datetime
 from ai_engine import get_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -9,6 +10,21 @@ from langchain_core.messages import HumanMessage, SystemMessage
 async def _generate_ai_instructor_summary(class_id: str) -> str:
     """반 전체 대화 내역을 취합하여 강사용 종합 분석 보고서 생성"""
     try:
+        # 0. 강사 정보 및 수업 정보 가져오기
+        class_res = await config.supabase.table("classes").select("title, instructor_id").eq("id", class_id).execute()
+        class_title = "수업"
+        instructor_name = "강사"
+        
+        if class_res.data:
+            class_title = class_res.data[0].get("title", class_title)
+            inst_id = class_res.data[0].get("instructor_id")
+            if inst_id:
+                user_res = await config.supabase.table("users").select("name").eq("id", inst_id).execute()
+                if user_res.data:
+                    instructor_name = user_res.data[0].get("name", instructor_name)
+        
+        current_date = datetime.now().strftime("%Y년 %m월 %d일")
+
         # 1. 반 전체 채팅 세션 및 메시지 가져오기
         sessions_res = await config.supabase.table("chat_sessions")\
             .select("id, student_id")\
@@ -35,18 +51,23 @@ async def _generate_ai_instructor_summary(class_id: str) -> str:
             log_text += f"{role}: {msg['content'][:150]}\n"
 
         prompt = f"""당신은 교육 컨설턴트입니다. 
-아래는 오늘 수업 중 학생들이 AI와 나눈 대화 로그의 일부입니다.
-이 데이터를 분석하여 강사에게 수업 피드백을 한국어로 제공하세요.
+아래 학습 데이터를 분석하여 강사에게 수업 피드백을 제공하세요.
+
+[리포트 기본 정보]
+대상: {instructor_name} 강사님
+날짜: {current_date}
+분석 대상: 학생-AI 대화 로그 ({class_title})
 
 [대화 로그 데이터]
 {log_text}
 
 [작성 지침]
-1. 학생들이 공통적으로 어려워하거나 질문이 많았던 핵심 개념이나 주제가 무엇인지 분석하세요.
-2. 학생들의 전반적인 이해도 상태를 요약하세요.
-3. 다음 수업 시작 전, 학생들이 놓치고 있을 법한 내용을 중심으로 5분 내외의 '복습 추천 내용'을 제시하세요.
-4. 반드시 강사에게 조언하는 정중하고 전문적인 줄글 형태로 작성하세요.
-5. 마크다운 형식을 사용하세요."""
+1. 리포트 시작 시 반드시 위의 [리포트 기본 정보]를 포함하여 제목처럼 작성하세요.
+2. 학생들이 공통적으로 어려워하거나 질문이 많았던 핵심 개념이나 주제가 무엇인지 분석하세요.
+3. 학생들의 전반적인 이해도 상태를 요약하세요.
+4. 다음 수업 시작 전, 학생들이 놓치고 있을 법한 내용을 중심으로 5분 내외의 '복습 추천 내용'을 제시하세요.
+5. 반드시 강사에게 조언하는 정중하고 전문적인 줄글 형태로 작성하세요.
+6. 마크다운 형식을 사용하세요."""
 
         model = get_chat_model()
         messages = [
