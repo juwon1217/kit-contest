@@ -205,25 +205,35 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         ai_reply = "채팅 응답에 실패했습니다. API 키를 확인해주세요."
 
     # 4. 메시지 및 상호작용 기록
+    # 4. 메시지 및 상호작용 기록
     try:
-        await chat_manager.add_message(session_id, "user", req.message)
-        await chat_manager.add_message(session_id, "assistant", ai_reply)
+        if "dummy" not in session_id:
+            await chat_manager.add_message(session_id, "user", req.message)
+            await chat_manager.add_message(session_id, "assistant", ai_reply)
 
         if internal_class_id == "unknown_class":
-            session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", session_id).execute()
-            internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
+            if "dummy" not in session_id:
+                session_data = await config.supabase.table("chat_sessions").select("class_id").eq("id", session_id).execute()
+                internal_class_id = session_data.data[0]["class_id"] if session_data.data else "unknown_class"
+            elif req.class_id:
+                # 프론트가 진짜로 class_id를 보냈지만 session_id가 계속 dummy라면 여기서 억지로라도 찾습니다.
+                class_res = await config.supabase.table("classes").select("id").eq("class_id", req.class_id.strip()).execute()
+                internal_class_id = class_res.data[0]["id"] if class_res.data else "unknown_class"
 
-        interaction = InteractionCreate(
-            class_id=internal_class_id,
-            student_id=user["id"],
-            page_number=req.page,
-            interaction_type="follow_up" if history else "chat_direct",
-            question_content=req.message,
-            ai_response=ai_reply
-        )
-
-        if internal_class_id != "unknown_class":
+        # 위 노력에도 불구하고 여전히 클래스를 모르면 기록 포기
+        if internal_class_id == "unknown_class":
+            print(f"[DEBUG] Skipping interaction record because class is unknown for msg: {req.message}")
+        else:
+            interaction = InteractionCreate(
+                class_id=internal_class_id,
+                student_id=user["id"],
+                page_number=req.page,
+                interaction_type="follow_up" if history else "chat_direct",
+                question_content=req.message,
+                ai_response=ai_reply
+            )
             await interaction_recorder.record(interaction)
+            print(f"[DEBUG] Successfully recorded interaction for class {internal_class_id}")
     except Exception as db_e:
         print(f"DB Record Error: {db_e}")
     
