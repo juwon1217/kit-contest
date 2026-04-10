@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 const PDFViewer = dynamic(() => import('@/components/PDFViewer'), { ssr: false });
 
 import AISidebar from '@/components/AISidebar';
+import { getApiUrl } from '@/lib/api';
 
 
 export default function StudentDashboard({ params }: { params: Promise<{ classId: string }> }) {
@@ -28,7 +29,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
   // 5초 폴링으로 수업 상태 확인
   const checkClassStatus = useCallback(async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/classes/${classId}/status`);
+      const res = await fetch(`${getApiUrl()}/api/classes/${classId}/status`);
       if (res.ok) {
         const data = await res.json();
         const status = data.status as 'active' | 'ended';
@@ -73,7 +74,7 @@ export default function StudentDashboard({ params }: { params: Promise<{ classId
       }
 
 
-      const res = await fetch(`http://localhost:8000${endpoint}`, {
+      const res = await fetch(`${getApiUrl()}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

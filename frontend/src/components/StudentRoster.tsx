@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/lib/api';
 
 interface StudentRosterProps {
   classId: string;
@@ -23,7 +24,7 @@ export default function StudentRoster({ classId }: StudentRosterProps) {
       try {
         const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
 
-        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/roster`, {
+        const res = await fetch(`${getApiUrl()}/api/classes/${classId}/roster`, {
 
           headers: { 'Authorization': `Bearer ${token}` }
         });

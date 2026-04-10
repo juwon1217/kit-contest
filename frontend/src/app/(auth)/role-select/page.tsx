@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AppleButton from '@/components/apple/AppleButton';
 import AppleCard from '@/components/apple/AppleCard';
+import { getApiUrl } from '@/lib/api';
+
 
 export default function RoleSelectPage() {
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function RoleSelectPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/auth/simple-login', {
+      const res = await fetch(`${getApiUrl()}/api/auth/simple-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

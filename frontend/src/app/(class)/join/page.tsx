@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppleCard from '@/components/apple/AppleCard';
 import AppleButton from '@/components/apple/AppleButton';
+import { getApiUrl } from '@/lib/api';
+
 
 export default function JoinClassPage() {
   const router = useRouter();
@@ -24,7 +26,7 @@ export default function JoinClassPage() {
     try {
       const token = sessionStorage.getItem('auth_token') || 'dev_student';
 
-      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/join`, {
+      const res = await fetch(`${getApiUrl()}/api/classes/${classId}/join`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

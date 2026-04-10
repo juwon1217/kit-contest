@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import AppleCard from '@/components/apple/AppleCard';
 import AppleButton from '@/components/apple/AppleButton';
+import { getApiUrl } from '@/lib/api';
+
 
 interface QuizOption {
   id: string;
@@ -48,7 +50,7 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
       try {
         const token = sessionStorage.getItem('auth_token') || 'dev_student';
 
-        const res = await fetch(`http://127.0.0.1:8000/api/quiz/${classId}`, {
+        const res = await fetch(`${getApiUrl()}/api/quiz/${classId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -108,7 +110,7 @@ export default function QuizPage({ params }: { params: Promise<{ classId: string
     try {
       const token = sessionStorage.getItem('auth_token') || 'dev_student';
 
-      const res = await fetch(`http://127.0.0.1:8000/api/quiz/${classId}/submit/${currentQ.id}`, {
+      const res = await fetch(`${getApiUrl()}/api/quiz/${classId}/submit/${currentQ.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

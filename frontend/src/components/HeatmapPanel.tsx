@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import * as d3 from 'd3-hierarchy';
+import { getApiUrl } from '@/lib/api';
+
 
 interface HeatmapPanelProps {
   classId: string;
@@ -24,7 +26,7 @@ export default function HeatmapPanel({ classId, totalPages, onPageClick, current
       try {
         const token = sessionStorage.getItem('auth_token') || 'dev_instructor';
 
-        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/heatmap`, {
+        const res = await fetch(`${getApiUrl()}/api/classes/${classId}/heatmap`, {
 
           headers: { 'Authorization': `Bearer ${token}` }
         });

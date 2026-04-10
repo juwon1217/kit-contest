@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppleCard from '@/components/apple/AppleCard';
 import AppleButton from '@/components/apple/AppleButton';
+import { getApiUrl } from '@/lib/api';
+
 
 export default function CreateClassPage() {
   const router = useRouter();
@@ -32,7 +34,7 @@ export default function CreateClassPage() {
       formData.append('pdf_file', file);
       formData.append('total_pages', '24'); // MVP 임시 페이지 수 지정
       
-      const res = await fetch('http://127.0.0.1:8000/api/classes', {
+      const res = await fetch(`${getApiUrl()}/api/classes`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

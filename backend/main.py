@@ -17,6 +17,8 @@ app = FastAPI(title="Edu-Lens AI Platform API", lifespan=lifespan)
 
 
 
+import os
+
 # CORS Middleware
 origins = [
     "http://localhost:3000",
@@ -24,6 +26,10 @@ origins = [
     "http://localhost:3001",
     "http://127.0.0.1:3001",
 ]
+
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    origins.extend([origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()])
 
 app.add_middleware(
     CORSMiddleware,

@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import AppleCard from '@/components/apple/AppleCard';
 import AppleButton from '@/components/apple/AppleButton';
+import { getApiUrl } from '@/lib/api';
+
 
 // ─────────────────── 타입 정의 ───────────────────
 
@@ -73,7 +75,7 @@ export default function ReportPage({ params }: { params: Promise<{ classId: stri
         setStudentData(null);
         setRole(userRole as any);
 
-        const res = await fetch(`http://127.0.0.1:8000/api/report/${classId}/view`, {
+        const res = await fetch(`${getApiUrl()}/api/report/${classId}/view`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

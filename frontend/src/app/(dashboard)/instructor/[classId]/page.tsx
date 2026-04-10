@@ -9,6 +9,7 @@ const PDFViewer = dynamic(() => import('@/components/PDFViewer'), { ssr: false }
 import HeatmapPanel from '@/components/HeatmapPanel';
 import StudentRoster from '@/components/StudentRoster';
 import ToastNotifier from '@/components/ToastNotifier';
+import { getApiUrl } from '@/lib/api';
 
 
 export default function InstructorDashboard({ params }: { params: Promise<{ classId: string }> }) {
@@ -28,7 +29,7 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
     try {
       const token = sessionStorage.getItem('auth_token') || '';
 
-      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/heatmap`, {
+      const res = await fetch(`${getApiUrl()}/api/classes/${classId}/heatmap`, {
 
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -58,7 +59,7 @@ export default function InstructorDashboard({ params }: { params: Promise<{ clas
     try {
       const token = sessionStorage.getItem('auth_token') || '';
 
-      const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/end`, {
+      const res = await fetch(`${getApiUrl()}/api/classes/${classId}/end`, {
 
         method: 'PUT',
         headers: {

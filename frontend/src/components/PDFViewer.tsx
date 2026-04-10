@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { getApiUrl } from '@/lib/api';
 
 // pdf.js worker 설정
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -32,7 +33,7 @@ export default function PDFViewer({ classId, role, onTextSelect, onAreaCapture, 
   useEffect(() => {
     const fetchPdf = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/classes/${classId}/pdf`);
+        const res = await fetch(`${getApiUrl()}/api/classes/${classId}/pdf`);
 
         if (res.ok) {
           const blob = await res.blob();
