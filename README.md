@@ -107,7 +107,7 @@ graph TD
 | :---: | :---: |
 | ![정보 입력](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/instructor%20page/스크린샷%202026-04-11%20203351.png) | ![자료 설정](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/instructor%20page/스크린샷%202026-04-11%20203532.png) |
 
-| 3. 실시간 모니터링 (히트맵/활동) | 4. AI 상호작용 분석 |
+| 3. 수업 개설 및 코드 생성 | 4. 실시간 모니터링(히트맵/활동) |
 | :---: | :---: |
 | ![실시간 모니터링](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/instructor%20page/스크린샷%202026-04-11%20203551.png) | ![분석](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/instructor%20page/스크린샷%202026-04-11%20203705.png) |
 
@@ -120,15 +120,15 @@ graph TD
 ### 3. 학생 흐름 (Student Flow)
 학생은 PDF 자료와 연동된 AI 도우미를 통해 실시간으로 궁금증을 해결하고, 맞춤형 퀴즈와 리포트로 학습을 완성합니다.
 
-| 1. 학생 정보 입력 및 입장 | 2. PDF 연동 AI 학습 도메인 |
+| 1. 학생 정보 입력 및 입장 | 2. 코드 입력으로 수업 입장 |
 | :---: | :---: |
-| ![입장 정보](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203426.png) | ![AI 학습 환경](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203649.png) |
+| ![입장 정보](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203426.png) | ![AI 학습 환경](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203603.png) |
 
-| 3. 영역 캡처 기반 AI 질의응답 | 4. 실시간 이해도 점검 퀴즈 |
+| 3. PDF 연동 AI 학습 도메인 | 4. 수업 종료 알림 |
 | :---: | :---: |
-| ![영역 캡처 질문](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203736.png) | ![퀴즈 풀이](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203816.png) |
+| ![영역 캡처 질문](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203649.png) | ![퀴즈 풀이](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203736.png) |
 
-| 5. 핵심 개념 플래시카드 복습 | 6. 오답 노트 및 해설 |
+| 5. 실시간 이해도 점검 퀴즈 | 6. 퀴즈 결과 알림 |
 | :---: | :---: |
 | ![플래시카드](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203840.png) | ![오답 노트](README%EC%97%90%20%ED%8F%AC%ED%95%A8%EB%90%A0%20%ED%8E%98%EC%9D%B4%EC%A7%80%20%EC%8A%A4%ED%81%AC%EB%A6%B0%EC%83%B7/student%20page/스크린샷%202026-04-11%20203849.png) |
 
